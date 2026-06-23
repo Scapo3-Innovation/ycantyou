@@ -10,7 +10,10 @@ import { buildMarkedDates, type CalendarPalette } from '@/features/tracking/cale
 import { CycleHistoryList } from '@/features/tracking/components/CycleHistoryList';
 import { PredictionCard } from '@/features/tracking/components/PredictionCard';
 import { computeCyclePrediction } from '@/features/tracking/prediction';
-import { scheduleEstimatedPeriodReminder } from '@/features/tracking/notifications';
+import {
+  notificationsSupported,
+  scheduleEstimatedPeriodReminder,
+} from '@/features/tracking/notifications';
 import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
 import { useReminders } from '@/features/tracking/useReminders';
 import { colors, spacing, typography } from '@/theme';
@@ -110,12 +113,19 @@ export default function TrackScreen() {
             A gentle daily nudge to log, plus a heads-up before your estimated period. These are
             on-device reminders.
           </Text>
-          <Button
-            label={reminders.enabled ? 'Turn off daily reminder' : 'Turn on daily reminder'}
-            variant="secondary"
-            loading={reminders.busy || reminders.loading}
-            onPress={onToggleReminders}
-          />
+          {notificationsSupported ? (
+            <Button
+              label={reminders.enabled ? 'Turn off daily reminder' : 'Turn on daily reminder'}
+              variant="secondary"
+              loading={reminders.busy || reminders.loading}
+              onPress={onToggleReminders}
+            />
+          ) : (
+            <Text style={[typography.caption, { color: c.textMuted }]}>
+              Reminders aren&apos;t available in Expo Go on Android — they&apos;ll work in a
+              development build.
+            </Text>
+          )}
         </View>
 
         <View style={styles.section}>

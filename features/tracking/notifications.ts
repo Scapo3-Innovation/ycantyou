@@ -1,6 +1,7 @@
 import { parseISO, subDays } from 'date-fns';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsModule from 'expo-notifications';
 
 import {
   DAILY_NUDGE_HOUR,
@@ -9,30 +10,56 @@ import {
 } from './constants';
 
 /**
- * LOCAL scheduled notifications only — these work in Expo Go.
+ * LOCAL scheduled notifications.
  *
- * Remote push is intentionally NOT implemented here (it needs a development build, not
- * Expo Go); see the clearly-marked stub at the bottom.
+ * IMPORTANT: as of SDK 53 the expo-notifications native module was removed from Expo Go on
+ * Android — importing it there throws and would crash the screen. So we:
+ *   - detect Expo Go + Android and treat notifications as UNSUPPORTED (graceful no-ops), and
+ *   - lazy-`require` expo-notifications only when supported, never at module top level.
+ * Local notifications still work in a development build (and in Expo Go on iOS). Remote push
+ * always needs a dev build — see the stub at the bottom.
  *
  * Never put health data in a notification body (lock-screen visible). Keep copy generic.
  */
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+/** Whether the local-notification APIs are usable in the current runtime. */
+export const notificationsSupported = !(isExpoGo && Platform.OS === 'android');
 
 const DAILY_NUDGE_ID = 'daily-log-nudge';
 const PERIOD_REMINDER_ID = 'estimated-period-reminder';
 const HOUR_FOR_PERIOD_REMINDER = 9;
 
-// Show notifications while the app is foregrounded.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+let cached: typeof NotificationsModule | null = null;
+let handlerSet = false;
+
+/** Lazily load expo-notifications (and configure it) only where it's safe to do so. */
+function getNotifications(): typeof NotificationsModule | null {
+  if (!notificationsSupported) return null;
+  if (!cached) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    cached = require('expo-notifications') as typeof NotificationsModule;
+  }
+  if (!handlerSet) {
+    cached.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+    handlerSet = true;
+  }
+  return cached;
+}
 
 /** Ask for notification permission (and set up the Android channel). Returns whether granted. */
 export async function ensureNotificationPermission(): Promise<boolean> {
+  const Notifications = getNotifications();
+  if (!Notifications) return false;
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Reminders',
@@ -50,6 +77,9 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 
 /** Schedule (or reschedule) the daily log nudge at the default time, repeating daily. */
 export async function scheduleDailyNudge(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
   await Notifications.cancelScheduledNotificationAsync(DAILY_NUDGE_ID).catch(() => {});
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_NUDGE_ID,
@@ -67,6 +97,8 @@ export async function scheduleDailyNudge(): Promise<void> {
 
 /** Cancel the daily log nudge. */
 export async function cancelDailyNudge(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
   await Notifications.cancelScheduledNotificationAsync(DAILY_NUDGE_ID).catch(() => {});
 }
 
@@ -75,6 +107,9 @@ export async function cancelDailyNudge(): Promise<void> {
  * No-op (and clears any prior reminder) if the target time is already in the past.
  */
 export async function scheduleEstimatedPeriodReminder(predictedStartIso: string): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+
   await Notifications.cancelScheduledNotificationAsync(PERIOD_REMINDER_ID).catch(() => {});
 
   const when = subDays(parseISO(predictedStartIso), PERIOD_REMINDER_LEAD_DAYS);
@@ -93,6 +128,8 @@ export async function scheduleEstimatedPeriodReminder(predictedStartIso: string)
 
 /** Cancel the estimated-period reminder. */
 export async function cancelEstimatedPeriodReminder(): Promise<void> {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
   await Notifications.cancelScheduledNotificationAsync(PERIOD_REMINDER_ID).catch(() => {});
 }
 
