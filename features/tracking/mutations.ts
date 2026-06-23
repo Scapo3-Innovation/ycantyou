@@ -18,6 +18,14 @@ const nowIso = () => new Date().toISOString();
 /** Sort cycles newest-first to match the server ordering. */
 const byStartDesc = (a: Cycle, b: Cycle) => (a.start_date < b.start_date ? 1 : -1);
 
+/**
+ * Root prefix of the Module 5 insights query keys. Logging/editing cycles or daily logs
+ * changes the server-aggregated insights, so we invalidate them here. Referenced as a
+ * literal prefix (not imported from features/insights) to avoid a circular dependency —
+ * the insights feature already imports from tracking.
+ */
+const INSIGHTS_ROOT = ['insights'] as const;
+
 // --- Cycles -----------------------------------------------------------------
 
 /** Log a new period, optimistically prepending it to the cycle list. */
@@ -49,7 +57,10 @@ export function useLogPeriod() {
     onError: (_e, _form, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      void qc.invalidateQueries({ queryKey: INSIGHTS_ROOT });
+    },
   });
 }
 
@@ -80,7 +91,10 @@ export function useUpdatePeriod() {
     onError: (_e, _vars, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      void qc.invalidateQueries({ queryKey: INSIGHTS_ROOT });
+    },
   });
 }
 
@@ -102,7 +116,10 @@ export function useDeletePeriod() {
     onError: (_e, _id, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      void qc.invalidateQueries({ queryKey: INSIGHTS_ROOT });
+    },
   });
 }
 
@@ -153,6 +170,7 @@ export function useUpsertDailyLog(date: string) {
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: dayKey });
       void qc.invalidateQueries({ queryKey: recentKey });
+      void qc.invalidateQueries({ queryKey: INSIGHTS_ROOT });
     },
   });
 }
@@ -187,6 +205,7 @@ export function useDeleteDailyLog(date: string) {
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: dayKey });
       void qc.invalidateQueries({ queryKey: recentKey });
+      void qc.invalidateQueries({ queryKey: INSIGHTS_ROOT });
     },
   });
 }
