@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { format, isValid, parseISO } from 'date-fns';
 import { createElement, useMemo, useState } from 'react';
 import {
@@ -54,12 +54,13 @@ export function DateOfBirthField({
   const selectedDate = useMemo(() => parseDob(value) ?? new Date(2000, 0, 1), [value]);
   const displayValue = formatDisplay(value);
 
-  function onDateChange(event: DateTimePickerEvent, date?: Date) {
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-      if (event.type === 'dismissed') return;
-    }
-    if (date) onChange(toIsoDate(date));
+  function onDateSelected(_event: DateTimePickerChangeEvent, date: Date) {
+    onChange(toIsoDate(date));
+    if (Platform.OS === 'android') setShowPicker(false);
+  }
+
+  function onPickerDismiss() {
+    setShowPicker(false);
   }
 
   function confirmIosDate() {
@@ -140,7 +141,8 @@ export function DateOfBirthField({
           mode="date"
           display="calendar"
           value={selectedDate}
-          onChange={onDateChange}
+          onValueChange={onDateSelected}
+          onDismiss={onPickerDismiss}
           maximumDate={maxDate}
           minimumDate={MIN_DATE}
         />
@@ -164,7 +166,7 @@ export function DateOfBirthField({
                 mode="date"
                 display="inline"
                 value={selectedDate}
-                onChange={onDateChange}
+                onValueChange={onDateSelected}
                 maximumDate={maxDate}
                 minimumDate={MIN_DATE}
                 themeVariant={scheme}
