@@ -1,0 +1,4 @@
+/** Design-token barrel. Import tokens from `@/theme`. */
+export * from './colors';
+export * from './spacing';
+export * from './typography';

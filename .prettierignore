@@ -1,0 +1,13 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+assets/
+package-lock.json
+
+# Author-owned docs — leave formatting untouched
+CLAUDE.md
+README.md
+docs/
