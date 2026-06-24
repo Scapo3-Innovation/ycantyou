@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 import type { RiskBand, ScreenerResult } from '@/types/database';
@@ -13,8 +13,7 @@ type HistoryListProps = {
 
 /** Past screener results, newest first. Tap to reopen a result. */
 export function HistoryList({ results, onSelect }: HistoryListProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const bandColor: Record<RiskBand, string> = {
     low: c.success,
     moderate: c.warning,

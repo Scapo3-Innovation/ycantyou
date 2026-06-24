@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Text } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme';
+import { Card } from '@/components/ui/Card';
+import { colors, typography } from '@/theme';
 
 type InsightCardProps = {
   title: string;
@@ -10,28 +11,15 @@ type InsightCardProps = {
 
 /** Shared card chrome for the dashboard sections. */
 export function InsightCard({ title, children }: InsightCardProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
   return (
-    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-      <Text style={[typography.heading, { color: c.text }]}>{title}</Text>
+    <Card>
+      <Text style={[typography.h2, { color: colors.text }]}>{title}</Text>
       {children}
-    </View>
+    </Card>
   );
 }
 
 /** Friendly "not enough data yet" state used inside an InsightCard. */
 export function InsightEmptyState({ message }: { message: string }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-  return <Text style={[typography.body, { color: c.textMuted }]}>{message}</Text>;
+  return <Text style={[typography.body, { color: colors.textMuted }]}>{message}</Text>;
 }
-
-const styles = StyleSheet.create({
-  card: {
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    gap: spacing.md,
-  },
-});

@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -29,8 +28,7 @@ export default function DayLogScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ date?: string }>();
   const date = params.date ?? format(new Date(), 'yyyy-MM-dd');
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const { data: existing, isLoading } = useDailyLog(date);
   const { data: symptoms = [] } = useSymptoms();

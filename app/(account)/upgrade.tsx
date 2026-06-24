@@ -6,7 +6,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -28,8 +27,7 @@ type Step = 'email' | 'code';
  */
 export default function UpgradeScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');

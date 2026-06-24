@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -29,8 +28,7 @@ export default function DetailsScreen() {
   const { session } = useAuth();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');

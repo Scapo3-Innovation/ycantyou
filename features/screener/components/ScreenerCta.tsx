@@ -1,12 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, shadows, spacing, typography } from '@/theme';
 
 /** Dashboard entry point into the PCOS risk screener (the module's wedge feature). */
 export function ScreenerCta({ onPress }: { onPress: () => void }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   return (
     <Pressable
       onPress={onPress}
@@ -31,6 +30,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
+    backgroundColor: colors.surface,
+    ...shadows.card,
   },
   text: {
     flex: 1,

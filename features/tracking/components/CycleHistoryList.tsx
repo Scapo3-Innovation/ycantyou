@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 import type { Cycle } from '@/types/database';
@@ -16,8 +16,7 @@ const fmt = (iso: string) => format(parseISO(iso), 'd MMM yyyy');
  * exist, the resulting cycle length. Tap a row to edit it.
  */
 export function CycleHistoryList({ cycles, onEdit }: CycleHistoryListProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   if (cycles.length === 0) {
     return (

@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 import { Button } from '@/components/ui/Button';
@@ -20,8 +20,7 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function TrackScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(today);
@@ -36,7 +35,7 @@ export default function TrackScreen() {
     () => ({
       periodBg: c.primary,
       periodText: c.primaryText,
-      fertileBg: scheme === 'light' ? '#DCEFE6' : '#274539',
+      fertileBg: '#DCEFE6',
       fertileText: c.text,
       predictedBorder: c.primary,
       predictedText: c.primary,
@@ -45,7 +44,7 @@ export default function TrackScreen() {
       selectedRing: c.primary,
       text: c.text,
     }),
-    [c, scheme],
+    [c],
   );
 
   const markedDates = useMemo(
@@ -144,11 +143,10 @@ export default function TrackScreen() {
 
 /** Small color key for the calendar marks. */
 function Legend() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const items = [
     { color: c.primary, label: 'Period' },
-    { color: scheme === 'light' ? '#DCEFE6' : '#274539', label: 'Fertile (est.)' },
+    { color: '#DCEFE6', label: 'Fertile (est.)' },
   ];
   return (
     <View style={styles.legend}>

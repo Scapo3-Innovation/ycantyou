@@ -1,9 +1,10 @@
 import { format, parseISO } from 'date-fns';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import type { CyclePrediction } from '@/features/tracking/prediction';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 import { PHASE_LABELS } from '../constants';
 import { daysSinceStart, deriveCyclePhase } from '../phase';
@@ -23,9 +24,6 @@ const fmt = (iso: string) => format(parseISO(iso), 'EEE, d MMM');
  * honest for irregular cycles), and a quick "Log today" action.
  */
 export function StatusCard({ prediction, lastStart, today, onLogToday }: StatusCardProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-
   // Average cycle length is available whenever we have ≥2 logged starts.
   const avgLength =
     prediction.status === 'regular' || prediction.status === 'irregular'
@@ -34,39 +32,36 @@ export function StatusCard({ prediction, lastStart, today, onLogToday }: StatusC
 
   const dayIndex = lastStart ? daysSinceStart(lastStart, today) : null;
   const cycleDay = dayIndex !== null ? dayIndex + 1 : null;
-  const phase =
-    dayIndex !== null && avgLength ? deriveCyclePhase(dayIndex, avgLength) : null;
+  const phase = dayIndex !== null && avgLength ? deriveCyclePhase(dayIndex, avgLength) : null;
 
   return (
-    <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+    <Card>
       {cycleDay !== null ? (
         <>
-          <Text style={[typography.caption, styles.eyebrow, { color: c.primary }]}>
+          <Text style={[typography.caption, styles.eyebrow, { color: colors.primary }]}>
             Cycle day {cycleDay}
           </Text>
           {phase ? (
-            <Text style={[typography.title, { color: c.text }]}>
-              {PHASE_LABELS[phase]} phase
-            </Text>
+            <Text style={[typography.h1, { color: colors.text }]}>{PHASE_LABELS[phase]} phase</Text>
           ) : (
-            <Text style={[typography.title, { color: c.text }]}>Tracking your cycle</Text>
+            <Text style={[typography.h1, { color: colors.text }]}>Tracking your cycle</Text>
           )}
           {phase && prediction.status === 'irregular' ? (
-            <Text style={[typography.caption, { color: c.textMuted }]}>
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
               Approximate — your cycles vary, so the phase is uncertain.
             </Text>
           ) : null}
         </>
       ) : (
-        <Text style={[typography.title, { color: c.text }]}>Start tracking</Text>
+        <Text style={[typography.h1, { color: colors.text }]}>Start tracking</Text>
       )}
 
-      <Text style={[typography.body, styles.next, { color: c.textMuted }]}>
+      <Text style={[typography.body, styles.next, { color: colors.textMuted }]}>
         {nextPeriodText(prediction)}
       </Text>
 
       <Button label="Log today" onPress={onLogToday} />
-    </View>
+    </Card>
   );
 }
 
@@ -83,12 +78,6 @@ function nextPeriodText(prediction: CyclePrediction): string {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    gap: spacing.sm,
-  },
   eyebrow: {
     fontWeight: '600',
     textTransform: 'uppercase',

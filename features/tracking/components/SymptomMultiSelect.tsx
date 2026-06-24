@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Checkbox } from '@/components/ui/Checkbox';
 import { colors, spacing, typography } from '@/theme';
@@ -13,8 +13,7 @@ type SymptomMultiSelectProps = {
 
 /** Multi-select symptom checklist, grouped by category, backed by the symptoms lookup. */
 export function SymptomMultiSelect({ symptoms, selected, onChange }: SymptomMultiSelectProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
   const groups = useMemo(() => {

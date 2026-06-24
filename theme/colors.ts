@@ -1,39 +1,31 @@
 /**
  * Design tokens — color palette.
  *
- * A calm, trustworthy palette for a women's health app: a warm berry/plum brand
- * (not the clichéd hot pink), neutral surfaces, and clear semantic states.
- * Light and dark variants share the same token keys so components can index by scheme.
+ * A clean, white, minimal system: white/near-white surfaces, one warm primary accent
+ * used sparingly, and a calm secondary for positive/insight accents. Single (light)
+ * theme — components reference these tokens directly (no light/dark branching).
  */
 
 export const colors = {
-  light: {
-    text: '#1A1320',
-    textMuted: '#6B6473',
-    background: '#FBF8FC',
-    surface: '#FFFFFF',
-    border: '#E8E2EE',
-    primary: '#A14E8C',
-    primaryText: '#FFFFFF',
-    success: '#2E7D5B',
-    warning: '#B26A00',
-    danger: '#C13B3B',
-    tabInactive: '#9A93A3',
-  },
-  dark: {
-    text: '#F4EFF7',
-    textMuted: '#A79FB0',
-    background: '#141019',
-    surface: '#1E1825',
-    border: '#2C2435',
-    primary: '#D49ABF',
-    primaryText: '#1A1320',
-    success: '#6BC79A',
-    warning: '#E0A24A',
-    danger: '#E07A7A',
-    tabInactive: '#7C7488',
-  },
+  background: '#FFFFFF', // app background
+  surfaceAlt: '#F7F8FA', // subtle recessed areas / chips
+  surface: '#FFFFFF', // cards
+  border: '#ECEEF1', // subtle card + hairline border
+
+  text: '#1C1C1E', // primary text / key numbers
+  textMuted: '#6E7178', // secondary text
+  textFaint: '#9AA0A6', // tertiary / disabled / tab inactive
+
+  primary: '#E76A8A', // THE accent — primary actions, active state, key numbers
+  primaryText: '#FFFFFF',
+  secondary: '#3BA99C', // positive / insight accent
+  secondaryText: '#FFFFFF',
+
+  success: '#3BA99C',
+  warning: '#C8862A',
+  danger: '#E5484D',
+
+  tabInactive: '#9AA0A6',
 } as const;
 
-export type ColorScheme = keyof typeof colors;
-export type ColorToken = keyof typeof colors.light;
+export type ColorToken = keyof typeof colors;

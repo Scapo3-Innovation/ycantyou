@@ -1,11 +1,10 @@
 import { Link, Stack } from 'expo-router';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '@/theme';
 
 export default function NotFoundScreen() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   return (
     <>
       <Stack.Screen options={{ title: 'Not found' }} />

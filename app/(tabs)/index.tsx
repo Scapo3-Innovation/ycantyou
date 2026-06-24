@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, useColorScheme } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Screen } from '@/components/ui/Screen';
 import { CycleLengthCard } from '@/features/insights/components/CycleLengthCard';
@@ -17,8 +17,7 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Reuse Module 4's hooks + prediction; insights trends come from server-side RPCs.

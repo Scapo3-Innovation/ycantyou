@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
-import { useColorScheme } from 'react-native';
 
 import { colors } from '@/theme';
 
@@ -15,8 +14,7 @@ type TabIconProps = {
  * Screens are empty placeholders in Module 1.
  */
 export default function TabsLayout() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   return (
     <Tabs

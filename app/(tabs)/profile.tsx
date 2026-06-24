@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Divider } from '@/components/ui/Divider';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { signOut } from '@/features/auth/api';
@@ -10,14 +12,13 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { requestAccountDeletion } from '@/features/profile/api';
 import { ProfileForm } from '@/features/profile/ProfileForm';
 import { useProfile } from '@/features/profile/useProfile';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 export default function ProfileScreen() {
   const { session, isGuest } = useAuth();
   const router = useRouter();
   const userId = session?.user.id;
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const { data: profile, isLoading } = useProfile(userId);
 
@@ -60,7 +61,7 @@ export default function ProfileScreen() {
         <Text style={[typography.title, { color: c.text }]}>Profile</Text>
 
         {isGuest ? (
-          <View style={[styles.guestBanner, { backgroundColor: c.surface, borderColor: c.border }]}>
+          <Card>
             <Text style={[typography.body, styles.guestTitle, { color: c.text }]}>
               Guest account
             </Text>
@@ -72,12 +73,12 @@ export default function ProfileScreen() {
               label="Upgrade — link an email"
               onPress={() => router.push('/(account)/upgrade')}
             />
-          </View>
+          </Card>
         ) : null}
 
         <ProfileForm key={userId} userId={userId} profile={profile} />
 
-        <View style={[styles.divider, { backgroundColor: c.border }]} />
+        <Divider style={styles.divider} />
 
         <Button label="Log out" variant="secondary" onPress={onLogout} />
         <Button
@@ -96,17 +97,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingVertical: spacing.lg,
   },
-  guestBanner: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.md,
-  },
   guestTitle: {
     fontWeight: '600',
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
     marginVertical: spacing.sm,
   },
 });

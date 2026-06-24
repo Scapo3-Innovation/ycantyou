@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -14,8 +14,7 @@ type RangeBarProps = {
  * Shows the range as a track with a marker at the average.
  */
 export function RangeBar({ min, max, avg, unit = 'days' }: RangeBarProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const span = max - min;
   const fraction = span > 0 ? (avg - min) / span : 0.5;

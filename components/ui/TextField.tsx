@@ -1,12 +1,5 @@
 import { forwardRef } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  useColorScheme,
-  View,
-  type TextInputProps,
-} from 'react-native';
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -20,25 +13,26 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   { label, error, style, ...inputProps },
   ref,
 ) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: c.textMuted }]}>{label}</Text>
+      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
         ref={ref}
-        placeholderTextColor={c.textMuted}
+        placeholderTextColor={colors.textFaint}
         style={[
           typography.body,
           styles.input,
-          { color: c.text, backgroundColor: c.surface, borderColor: error ? c.danger : c.border },
+          {
+            color: colors.text,
+            backgroundColor: colors.surface,
+            borderColor: error ? colors.danger : colors.border,
+          },
           style,
         ]}
         {...inputProps}
       />
       {error ? (
-        <Text style={[typography.caption, { color: c.danger }]} accessibilityLiveRegion="polite">
+        <Text style={[typography.caption, { color: colors.danger }]} accessibilityLiveRegion="polite">
           {error}
         </Text>
       ) : null}
@@ -56,7 +50,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 52,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     paddingHorizontal: spacing.md,
   },
 });

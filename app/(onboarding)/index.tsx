@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasHealthDataConsent, recordConsent } from '@/features/onboarding/api';
 import { PRIVACY_POLICY_URL } from '@/features/onboarding/constants';
@@ -15,8 +17,7 @@ export default function ConsentScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const userId = session?.user.id;
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [checking, setChecking] = useState(true);
   const [agreed, setAgreed] = useState(false);
@@ -62,7 +63,7 @@ export default function ConsentScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Your privacy & consent</Text>
+        <ScreenHeader title="Your privacy & consent" />
 
         <Text style={[typography.body, { color: c.text }]}>
           This app helps you understand and manage your menstrual and PCOS-related health. To do
@@ -70,13 +71,13 @@ export default function ConsentScreen() {
           goals.
         </Text>
 
-        <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <Card>
           <Text style={[typography.body, { color: c.text }]}>We promise to:</Text>
           <Text style={[typography.body, { color: c.textMuted }]}>
             • Collect only what a feature needs.{'\n'}• Keep your data encrypted and never sell it.
             {'\n'}• Let you export or delete everything, anytime.
           </Text>
-        </View>
+        </Card>
 
         <Text style={[typography.caption, { color: c.textMuted }]}>
           Under India&apos;s DPDP Act, your consent is explicit and revocable. You can withdraw it
@@ -108,12 +109,6 @@ const styles = StyleSheet.create({
   scroll: {
     gap: spacing.lg,
     paddingVertical: spacing.lg,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: spacing.md,
-    gap: spacing.sm,
   },
   link: {
     fontWeight: '600',

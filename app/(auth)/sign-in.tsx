@@ -5,7 +5,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -22,8 +21,7 @@ const SHOW_GUEST_SIGN_IN = __DEV__;
 
 export default function SignInScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<string>();

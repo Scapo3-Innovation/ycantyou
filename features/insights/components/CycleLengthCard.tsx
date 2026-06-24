@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { IRREGULAR_SPREAD_DAYS } from '@/features/tracking/constants';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -10,8 +10,7 @@ import { RangeBar } from './RangeBar';
 
 /** Cycle-length trend: average + regular/irregular, from server-side stats. */
 export function CycleLengthCard({ stats }: { stats: CycleLengthStats | undefined }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const enough =
     stats &&

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -12,8 +12,7 @@ type ScaleProps = {
 
 /** A 1–5 selector used for mood and energy. Tapping the current value clears it. */
 export function Scale({ label, value, onChange }: ScaleProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   return (
     <View style={styles.container}>

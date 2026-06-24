@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { StyleSheet, Text, useColorScheme } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { DateOfBirthField } from '@/components/ui/DateOfBirthField';
@@ -21,8 +21,7 @@ type FieldErrors = Partial<Record<'full_name' | 'dob' | 'goal' | 'language', str
  */
 export function ProfileForm({ userId, profile }: { userId: string; profile: Profile }) {
   const queryClient = useQueryClient();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [fullName, setFullName] = useState(profile.full_name ?? '');
   const [dob, setDob] = useState(profile.dob ?? '');

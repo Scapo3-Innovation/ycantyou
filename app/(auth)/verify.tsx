@@ -5,7 +5,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -19,8 +18,7 @@ import { colors, spacing, typography } from '@/theme';
 export default function VerifyScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const [token, setToken] = useState('');
   const [fieldError, setFieldError] = useState<string>();

@@ -1,15 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
+  View,
   type PressableProps,
 } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
 type ButtonProps = {
   label: string;
@@ -17,25 +18,30 @@ type ButtonProps = {
   variant?: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
+  leftIcon?: keyof typeof Ionicons.glyphMap;
 } & Pick<PressableProps, 'accessibilityHint'>;
 
-/** Themed pressable button with loading + disabled states. */
+/** Themed button. Filled primary, outline secondary, filled danger, or text-only ghost. */
 export function Button({
   label,
   onPress,
   variant = 'primary',
   loading = false,
   disabled = false,
+  leftIcon,
   accessibilityHint,
 }: ButtonProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
   const isDisabled = disabled || loading;
 
   const background =
-    variant === 'secondary' ? 'transparent' : variant === 'danger' ? c.danger : c.primary;
-  const labelColor = variant === 'secondary' ? c.text : c.primaryText;
-  const borderColor = variant === 'secondary' ? c.border : 'transparent';
+    variant === 'primary' ? colors.primary : variant === 'danger' ? colors.danger : 'transparent';
+  const labelColor =
+    variant === 'primary' || variant === 'danger'
+      ? colors.primaryText
+      : variant === 'ghost'
+        ? colors.primary
+        : colors.text;
+  const borderColor = variant === 'secondary' ? colors.border : 'transparent';
 
   return (
     <Pressable
@@ -53,7 +59,10 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={labelColor} />
       ) : (
-        <Text style={[typography.body, styles.label, { color: labelColor }]}>{label}</Text>
+        <View style={styles.content}>
+          {leftIcon ? <Ionicons name={leftIcon} size={18} color={labelColor} /> : null}
+          <Text style={[typography.button, { color: labelColor }]}>{label}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -62,19 +71,21 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     minHeight: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     borderWidth: 1,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: {
-    fontWeight: '600',
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   pressed: {
     opacity: 0.85,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
 });

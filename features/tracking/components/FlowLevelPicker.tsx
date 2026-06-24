@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme';
+import { Chip } from '@/components/ui/Chip';
+import { colors, spacing, typography } from '@/theme';
 import type { FlowLevel } from '@/types/database';
 
 import { FLOW_LEVELS } from '../constants';
@@ -12,32 +13,21 @@ type FlowLevelPickerProps = {
 
 /** Horizontal chips for period flow. Tapping the selected chip clears it. */
 export function FlowLevelPicker({ value, onChange }: FlowLevelPickerProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: c.textMuted }]}>Period flow</Text>
+      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>
+        Period flow
+      </Text>
       <View style={styles.row}>
         {FLOW_LEVELS.map((option) => {
           const selected = option.value === value;
           return (
-            <Pressable
+            <Chip
               key={option.value}
+              label={option.label}
+              selected={selected}
               onPress={() => onChange(selected ? null : option.value)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: selected ? c.primary : c.surface,
-                  borderColor: selected ? c.primary : c.border,
-                },
-              ]}>
-              <Text style={[typography.caption, { color: selected ? c.primaryText : c.text }]}>
-                {option.label}
-              </Text>
-            </Pressable>
+            />
           );
         })}
       </View>
@@ -56,12 +46,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  chip: {
-    minHeight: 40,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
   },
 });

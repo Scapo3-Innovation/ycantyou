@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -9,8 +9,7 @@ import { DISCLAIMER_SHORT, REFERRAL } from '../constants';
  * Shown prominently on the result screen (and mirrored in the PDF).
  */
 export function ResultDisclaimer() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   return (
     <View style={[styles.card, { backgroundColor: c.danger, borderColor: c.danger }]}>
       <Text style={[typography.heading, { color: c.primaryText }]}>

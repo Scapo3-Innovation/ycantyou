@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -7,8 +7,7 @@ import { colors, radius, spacing, typography } from '@/theme';
  * The fertile window is an estimate and explicitly NOT a contraceptive method.
  */
 export function FertileWindowNote() {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   return (
     <View style={[styles.note, { backgroundColor: c.surface, borderColor: c.warning }]}>
       <Text style={[typography.caption, { color: c.text }]}>

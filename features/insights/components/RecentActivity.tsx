@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { FLOW_LEVELS } from '@/features/tracking/constants';
 import type { DailyLog } from '@/types/database';
@@ -12,8 +12,7 @@ const RECENT_LIMIT = 5;
 
 /** Last few logged days, with flow / mood / energy at a glance. */
 export function RecentActivity({ logs }: { logs: DailyLog[] }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const recent = logs.slice(0, RECENT_LIMIT);
 

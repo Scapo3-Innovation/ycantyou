@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -9,8 +9,7 @@ type ProgressBarProps = {
 
 /** "Question X of Y" with a filled progress track. */
 export function ProgressBar({ current, total }: ProgressBarProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
 
   return (

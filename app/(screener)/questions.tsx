@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -15,8 +15,7 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function ScreenerQuestionsScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   // One session id per attempt, generated client-side and stable across renders.
   const [sessionId] = useState(() => Crypto.randomUUID());

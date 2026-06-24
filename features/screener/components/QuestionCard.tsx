@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -10,8 +10,7 @@ type QuestionCardProps = {
 
 /** A single yes/no screener question. */
 export function QuestionCard({ text, value, onAnswer }: QuestionCardProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const option = (label: string, optionValue: boolean) => {
     const selected = value === optionValue;

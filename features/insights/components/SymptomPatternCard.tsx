@@ -1,4 +1,4 @@
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -8,8 +8,7 @@ import { InsightCard, InsightEmptyState } from './InsightCard';
 
 /** Symptom-by-phase patterns, described from the user's own logs only. */
 export function SymptomPatternCard({ insights }: { insights: SymptomInsight[] }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   if (insights.length === 0) {
     return (

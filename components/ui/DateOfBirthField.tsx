@@ -8,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
@@ -47,8 +46,7 @@ export function DateOfBirthField({
   error,
   placeholder = 'Select your date of birth',
 }: DateOfBirthFieldProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
   const [showPicker, setShowPicker] = useState(false);
   const maxDate = useMemo(() => new Date(), []);
   const selectedDate = useMemo(() => parseDob(value) ?? new Date(2000, 0, 1), [value]);
@@ -169,7 +167,7 @@ export function DateOfBirthField({
                 onValueChange={onDateSelected}
                 maximumDate={maxDate}
                 minimumDate={MIN_DATE}
-                themeVariant={scheme}
+                themeVariant="light"
               />
             </Pressable>
           </Pressable>

@@ -1,7 +1,7 @@
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 import { Button } from '@/components/ui/Button';
@@ -17,8 +17,7 @@ const iso = (d: Date) => format(d, 'yyyy-MM-dd');
 export default function PeriodScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
+  const c = colors;
 
   const { data: cycles = [] } = useCycles();
   const editing = params.id ? cycles.find((cycle) => cycle.id === params.id) : undefined;

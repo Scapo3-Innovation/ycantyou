@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -11,9 +11,6 @@ type CheckboxProps = {
 
 /** A tappable checkbox + label row. */
 export function Checkbox({ checked, onChange, label }: CheckboxProps) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-
   return (
     <Pressable
       onPress={() => onChange(!checked)}
@@ -24,13 +21,13 @@ export function Checkbox({ checked, onChange, label }: CheckboxProps) {
         style={[
           styles.box,
           {
-            borderColor: checked ? c.primary : c.border,
-            backgroundColor: checked ? c.primary : 'transparent',
+            borderColor: checked ? colors.primary : colors.border,
+            backgroundColor: checked ? colors.primary : 'transparent',
           },
         ]}>
-        {checked ? <Ionicons name="checkmark" size={16} color={c.primaryText} /> : null}
+        {checked ? <Ionicons name="checkmark" size={16} color={colors.primaryText} /> : null}
       </View>
-      <Text style={[typography.body, styles.label, { color: c.text }]}>{label}</Text>
+      <Text style={[typography.body, styles.label, { color: colors.text }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -39,7 +36,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   box: {
     width: 24,

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -20,12 +20,9 @@ export function OptionGroup<T extends string>({
   onChange,
   error,
 }: OptionGroupProps<T>) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const c = colors[scheme];
-
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: c.textMuted }]}>{label}</Text>
+      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>{label}</Text>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -37,16 +34,16 @@ export function OptionGroup<T extends string>({
             style={[
               styles.option,
               {
-                backgroundColor: c.surface,
-                borderColor: selected ? c.primary : c.border,
+                backgroundColor: selected ? colors.surfaceAlt : colors.surface,
+                borderColor: selected ? colors.primary : colors.border,
                 borderWidth: selected ? 2 : 1,
               },
             ]}>
-            <Text style={[typography.body, { color: c.text }]}>{option.label}</Text>
+            <Text style={[typography.body, { color: colors.text }]}>{option.label}</Text>
           </Pressable>
         );
       })}
-      {error ? <Text style={[typography.caption, { color: c.danger }]}>{error}</Text> : null}
+      {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
     </View>
   );
 }
