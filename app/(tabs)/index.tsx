@@ -10,6 +10,7 @@ import { StatusCard } from '@/features/insights/components/StatusCard';
 import { SymptomPatternCard } from '@/features/insights/components/SymptomPatternCard';
 import { useCycleLengthStats, useSymptomPhasePatterns } from '@/features/insights/queries';
 import { selectSymptomInsights } from '@/features/insights/select';
+import { ScreenerCta } from '@/features/screener/components/ScreenerCta';
 import { computeCyclePrediction } from '@/features/tracking/prediction';
 import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
 import { colors, spacing, typography } from '@/theme';
@@ -46,6 +47,8 @@ export default function HomeScreen() {
             router.push({ pathname: '/(tabs)/track/day', params: { date: today } })
           }
         />
+
+        <ScreenerCta onPress={() => router.push('/(screener)/intro')} />
 
         <RecentActivity logs={dailyLogs} />
 

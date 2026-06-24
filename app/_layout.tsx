@@ -60,6 +60,7 @@ function RootNavigator() {
       <Stack.Protected guard={isSignedIn && isOnboarded}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(account)" />
+        <Stack.Screen name="(screener)" />
       </Stack.Protected>
 
       <Stack.Screen name="+not-found" />

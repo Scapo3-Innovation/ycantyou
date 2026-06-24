@@ -91,3 +91,31 @@ export type DailyLogSymptom = {
 export type DailyLogWithSymptoms = DailyLog & {
   symptom_codes: string[];
 };
+
+// ---------------------------------------------------------------------------
+// Module 6 — PCOS risk screener
+// ---------------------------------------------------------------------------
+
+/** A row in public.screener_questions (config; weights drive server-side scoring). */
+export type ScreenerQuestion = {
+  id: string;
+  code: string;
+  text: string;
+  category: string | null;
+  weight: number;
+  sort_order: number;
+  active: boolean;
+};
+
+/** Risk band returned by the scoring Edge Function. */
+export type RiskBand = 'low' | 'moderate' | 'high';
+
+/** A row in public.screener_results (one per completed session). */
+export type ScreenerResult = {
+  id: string;
+  user_id: string;
+  session_id: string;
+  score: number;
+  risk_band: RiskBand;
+  created_at: string;
+};
