@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    minHeight: 44,
+    minHeight: 48,
   },
   iconWrap: {
     width: 36,

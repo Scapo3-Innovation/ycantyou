@@ -3,10 +3,12 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Screen } from '@/components/ui/Screen';
 import { CycleLengthCard } from '@/features/insights/components/CycleLengthCard';
+import { Hero } from '@/features/insights/components/Hero';
+import { QuickActions } from '@/features/insights/components/QuickActions';
 import { RecentActivity } from '@/features/insights/components/RecentActivity';
-import { StatusCard } from '@/features/insights/components/StatusCard';
 import { SymptomPatternCard } from '@/features/insights/components/SymptomPatternCard';
 import { useCycleLengthStats, useSymptomPhasePatterns } from '@/features/insights/queries';
 import { selectSymptomInsights } from '@/features/insights/select';
@@ -17,43 +19,45 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const c = colors;
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Reuse Module 4's hooks + prediction; insights trends come from server-side RPCs.
-  const { data: cycles = [] } = useCycles();
+  const { data: cycles = [], isError, refetch } = useCycles();
   const { data: dailyLogs = [] } = useRecentDailyLogs();
   const { data: cycleStats } = useCycleLengthStats();
   const { data: symptomPatterns = [] } = useSymptomPhasePatterns();
 
   const prediction = useMemo(() => computeCyclePrediction(cycles), [cycles]);
-  const lastStart = cycles[0]?.start_date ?? null; // cycles are newest-first
-  const symptomInsights = useMemo(
-    () => selectSymptomInsights(symptomPatterns),
-    [symptomPatterns],
-  );
+  const symptomInsights = useMemo(() => selectSymptomInsights(symptomPatterns), [symptomPatterns]);
+
+  if (isError) {
+    return (
+      <Screen>
+        <ErrorState onRetry={() => void refetch()} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Home</Text>
+        <Text style={[typography.title, { color: colors.text }]}>Home</Text>
 
-        <StatusCard
-          prediction={prediction}
-          lastStart={lastStart}
-          today={today}
-          onLogToday={() =>
-            router.push({ pathname: '/(tabs)/track/day', params: { date: today } })
-          }
+        <Hero cycles={cycles} prediction={prediction} today={today} />
+
+        <QuickActions
+          onLogPeriod={() => router.push('/(tabs)/track/period')}
+          onDailyLog={() => router.push({ pathname: '/(tabs)/track/day', params: { date: today } })}
+          onScreener={() => router.push('/(screener)/intro')}
         />
 
         <ScreenerCta onPress={() => router.push('/(screener)/intro')} />
 
-        <RecentActivity logs={dailyLogs} />
-
         <CycleLengthCard stats={cycleStats} />
 
         <SymptomPatternCard insights={symptomInsights} />
+
+        <RecentActivity logs={dailyLogs} />
       </ScrollView>
     </Screen>
   );

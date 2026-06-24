@@ -1,8 +1,8 @@
 import { Stack } from 'expo-router';
 
-// Ensure the group anchors on the email-entry screen (verify needs an email param).
+// Start on the welcome carousel; it redirects returning users straight to sign-in.
 export const unstable_settings = {
-  initialRouteName: 'sign-in',
+  initialRouteName: 'welcome',
 };
 
 export default function AuthLayout() {

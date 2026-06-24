@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 import { Button } from '@/components/ui/Button';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Screen } from '@/components/ui/Screen';
 import { buildMarkedDates, type CalendarPalette } from '@/features/tracking/calendar';
 import { CycleHistoryList } from '@/features/tracking/components/CycleHistoryList';
@@ -25,7 +26,7 @@ export default function TrackScreen() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(today);
 
-  const { data: cycles = [] } = useCycles();
+  const { data: cycles = [], isError, refetch } = useCycles();
   const { data: dailyLogs = [] } = useRecentDailyLogs();
   const reminders = useReminders();
 
@@ -70,6 +71,14 @@ export default function TrackScreen() {
   }
 
   const selectedLabel = format(new Date(`${selectedDate}T00:00:00`), 'EEE, d MMM');
+
+  if (isError) {
+    return (
+      <Screen>
+        <ErrorState onRetry={() => void refetch()} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

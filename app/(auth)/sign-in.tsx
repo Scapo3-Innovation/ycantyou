@@ -1,18 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 
-import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
+import { PrivacyNote } from '@/components/ui/PrivacyNote';
+import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { sendEmailOtp, signInAsGuest } from '@/features/auth/api';
 import { emailSchema } from '@/features/auth/validation';
+import { PRIVACY_POLICY_URL } from '@/features/onboarding/constants';
 import { colors, spacing, typography } from '@/theme';
 
 // DEV/testing only — gates the "Continue as guest" button. Auto-hidden in production
@@ -104,6 +100,8 @@ export default function SignInScreen() {
               loading={guestLoading}
             />
           ) : null}
+
+          <PrivacyNote onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} />
         </View>
       </KeyboardAvoidingView>
     </Screen>
