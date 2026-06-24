@@ -22,7 +22,7 @@ export default function LearnScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Learn" subtitle="Plain-language guides about PCOS and your health." />
+        <ScreenHeader subtitle="Plain-language guides about PCOS and your health." />
 
         <Pressable
           onPress={() => router.push('/(tabs)/learn/search')}

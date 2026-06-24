@@ -1,19 +1,19 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'onboarding.seen_welcome';
+import { getWelcomeSeen, setWelcomeSeen } from './welcomeStorage';
 
 /**
- * Tracks whether the intro carousel has been seen, so returning (signed-out) users go
- * straight to sign-in. `seen` is null while loading.
+ * Tracks whether the intro carousel has been seen on this signed-out visit.
+ * After Skip / Get started the user goes to sign-in; logging out resets the flag.
+ * `seen` is null while loading.
  */
 export function useHasSeenWelcome() {
   const [seen, setSeen] = useState<boolean | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    AsyncStorage.getItem(STORAGE_KEY).then((value) => {
-      if (mounted) setSeen(value === 'true');
+    getWelcomeSeen().then((value) => {
+      if (mounted) setSeen(value);
     });
     return () => {
       mounted = false;
@@ -21,7 +21,7 @@ export function useHasSeenWelcome() {
   }, []);
 
   const markSeen = useCallback(async () => {
-    await AsyncStorage.setItem(STORAGE_KEY, 'true');
+    await setWelcomeSeen();
     setSeen(true);
   }, []);
 

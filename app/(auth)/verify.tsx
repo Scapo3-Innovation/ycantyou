@@ -3,16 +3,21 @@ import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { Button } from '@/components/ui/Button';
-import { Screen } from '@/components/ui/Screen';
+import { FadeInView } from '@/components/ui/FadeInView';
+import { HeroBanner } from '@/components/ui/HeroBanner';
+import { Screen, screenBodyPadding } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { sendEmailOtp, verifyEmailOtp } from '@/features/auth/api';
 import { otpSchema } from '@/features/auth/validation';
+import { onboardingImages } from '@/features/onboarding/images';
 import { colors, spacing, typography } from '@/theme';
 
 export default function VerifyScreen() {
@@ -37,7 +42,6 @@ export default function VerifyScreen() {
     setFieldError(undefined);
     setSubmitting(true);
     try {
-      // On success, the session is persisted and the auth listener redirects us out of (auth).
       await verifyEmailOtp(email, parsed.data.token);
     } catch {
       setSubmitError('That code is invalid or expired. Request a new one.');
@@ -61,46 +65,69 @@ export default function VerifyScreen() {
   }
 
   return (
-    <Screen>
+    <Screen edgeToEdge>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[typography.title, { color: c.text }]}>Enter code</Text>
-            <Text style={[typography.body, { color: c.textMuted }]}>
-              We sent a 6-digit code to {email}.
-            </Text>
-          </View>
-
-          <TextField
-            label="6-digit code"
-            value={token}
-            onChangeText={(value) => setToken(value.replace(/\D/g, '').slice(0, 6))}
-            error={fieldError}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            autoComplete="sms-otp"
-            textContentType="oneTimeCode"
-            maxLength={6}
-            placeholder="123456"
-            returnKeyType="done"
-            onSubmitEditing={onVerify}
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <HeroBanner
+            compact
+            image={onboardingImages.screening}
+            icon="keypad-outline"
+            title="Check your inbox"
+            subtitle={`We sent a 6-digit code to ${email}.`}
           />
 
-          {submitError ? (
-            <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
-          ) : null}
-          {resent ? (
-            <Text style={[typography.caption, { color: c.success }]}>
-              A new code is on its way.
-            </Text>
-          ) : null}
+          <View style={[styles.form, screenBodyPadding]}>
+            <FadeInView delay={120}>
+              <TextField
+                label="6-digit code"
+                value={token}
+                onChangeText={(value) => setToken(value.replace(/\D/g, '').slice(0, 6))}
+                error={fieldError}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                autoComplete="sms-otp"
+                textContentType="oneTimeCode"
+                maxLength={6}
+                placeholder="123456"
+                returnKeyType="done"
+                onSubmitEditing={onVerify}
+              />
+            </FadeInView>
 
-          <Button label="Verify" onPress={onVerify} loading={submitting} />
-          <Button label="Resend code" variant="secondary" onPress={onResend} loading={resending} />
-          <Button label="Use a different email" variant="secondary" onPress={() => router.back()} />
-        </View>
+            {submitError ? (
+              <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
+            ) : null}
+            {resent ? (
+              <Text style={[typography.caption, { color: c.success }]}>
+                A new code is on its way.
+              </Text>
+            ) : null}
+
+            <FadeInView delay={200}>
+              <Button label="Verify" onPress={onVerify} loading={submitting} />
+            </FadeInView>
+            <FadeInView delay={280}>
+              <Button
+                label="Resend code"
+                variant="secondary"
+                onPress={onResend}
+                loading={resending}
+              />
+            </FadeInView>
+            <FadeInView delay={360}>
+              <Button
+                label="Use a different email"
+                variant="secondary"
+                onPress={() => router.back()}
+              />
+            </FadeInView>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -110,13 +137,11 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.md,
+  scroll: {
+    paddingBottom: spacing.xxl,
   },
-  header: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+  form: {
+    gap: spacing.md,
+    paddingTop: spacing.lg,
   },
 });

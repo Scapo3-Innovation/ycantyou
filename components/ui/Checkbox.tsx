@@ -7,16 +7,20 @@ type CheckboxProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
+  disabled?: boolean;
 };
 
 /** A tappable checkbox + label row. */
-export function Checkbox({ checked, onChange, label }: CheckboxProps) {
+export function Checkbox({ checked, onChange, label, disabled = false }: CheckboxProps) {
   return (
     <Pressable
-      onPress={() => onChange(!checked)}
+      onPress={() => {
+        if (!disabled) onChange(!checked);
+      }}
+      disabled={disabled}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
-      style={styles.row}>
+      accessibilityState={{ checked, disabled }}
+      style={[styles.row, disabled && styles.disabled]}>
       <View
         style={[
           styles.box,
@@ -49,5 +53,8 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
+  },
+  disabled: {
+    opacity: 0.45,
   },
 });

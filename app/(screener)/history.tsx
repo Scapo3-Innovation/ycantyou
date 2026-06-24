@@ -7,7 +7,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { HistoryList } from '@/features/screener/components/HistoryList';
 import { useScreenerHistory } from '@/features/screener/queries';
-import { colors, spacing, typography } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 export default function ScreenerHistoryScreen() {
   const router = useRouter();
@@ -20,8 +20,6 @@ export default function ScreenerHistoryScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Past results</Text>
-
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />
         ) : (

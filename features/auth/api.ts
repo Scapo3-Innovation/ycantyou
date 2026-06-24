@@ -1,3 +1,4 @@
+import { clearWelcomeSeen } from '@/features/onboarding/welcomeStorage';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -60,8 +61,9 @@ export async function verifyEmailUpgrade(email: string, token: string): Promise<
   if (error) throw error;
 }
 
-/** Sign the current user out (clears the persisted session). */
+/** Sign the current user out. Root navigator sends you back to the welcome intro. */
 export async function signOut(): Promise<void> {
+  await clearWelcomeSeen();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }

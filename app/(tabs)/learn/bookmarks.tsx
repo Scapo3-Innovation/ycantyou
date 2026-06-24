@@ -22,7 +22,7 @@ export default function BookmarksScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Saved articles" onBack={() => router.back()} />
+        <ScreenHeader onBack={() => router.back()} />
 
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />

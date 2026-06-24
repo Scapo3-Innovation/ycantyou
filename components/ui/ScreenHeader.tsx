@@ -5,17 +5,23 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
 type ScreenHeaderProps = {
-  title: string;
+  /** Used for screen reader context only — not shown as a large page title. */
+  title?: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
 };
 
-/** Consistent page header: optional back button, display title, optional subtitle + right slot. */
+/** Compact page header: optional back button, optional subtitle, optional right slot. */
 export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderProps) {
+  const hasTopRow = Boolean(onBack || right);
+  const hasSubtitle = Boolean(subtitle);
+
+  if (!hasTopRow && !hasSubtitle) return null;
+
   return (
-    <View style={styles.container}>
-      {onBack || right ? (
+    <View style={styles.container} accessibilityLabel={title}>
+      {hasTopRow ? (
         <View style={styles.topRow}>
           {onBack ? (
             <Pressable
@@ -32,9 +38,7 @@ export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderPro
           {right ?? null}
         </View>
       ) : null}
-
-      <Text style={[typography.display, { color: colors.text }]}>{title}</Text>
-      {subtitle ? (
+      {hasSubtitle ? (
         <Text style={[typography.body, { color: colors.textMuted }]}>{subtitle}</Text>
       ) : null}
     </View>

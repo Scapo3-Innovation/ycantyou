@@ -40,8 +40,10 @@ export function Button({
       ? colors.primaryText
       : variant === 'ghost'
         ? colors.primary
-        : colors.text;
-  const borderColor = variant === 'secondary' ? colors.border : 'transparent';
+        : variant === 'secondary'
+          ? colors.secondary
+          : colors.text;
+  const borderColor = variant === 'secondary' ? colors.secondary : 'transparent';
 
   return (
     <Pressable

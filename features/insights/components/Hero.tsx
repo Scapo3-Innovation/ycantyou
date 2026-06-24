@@ -36,7 +36,7 @@ export function Hero({ cycles, prediction, today }: HeroProps) {
   if (state.kind === 'none') {
     return (
       <Card>
-        <Text style={[typography.h1, { color: colors.text }]}>Welcome 👋</Text>
+        <Text style={[typography.h1, { color: colors.text }]}>Welcome</Text>
         <Text style={[typography.body, { color: colors.textMuted }]}>
           Log your first period to see your cycle here.
         </Text>

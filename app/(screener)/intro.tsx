@@ -14,7 +14,6 @@ export default function ScreenerIntroScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={[typography.title, { color: c.text }]}>PCOS risk screener</Text>
           <Text style={[typography.body, { color: c.textMuted }]}>
             A short checklist about signs commonly associated with PCOS. It takes a couple of
             minutes and helps you decide whether to see a clinician — it cannot diagnose anything.

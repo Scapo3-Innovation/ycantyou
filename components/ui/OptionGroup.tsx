@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
 
-type Option<T extends string> = { value: T; label: string };
+type Option<T extends string> = { value: T; label: string; description?: string };
 
 type OptionGroupProps<T extends string> = {
   label: string;
@@ -12,7 +12,7 @@ type OptionGroupProps<T extends string> = {
   error?: string;
 };
 
-/** Single-select list of options (used for goal and language). */
+/** Single-select list of options (e.g. main goal). */
 export function OptionGroup<T extends string>({
   label,
   options,
@@ -31,6 +31,9 @@ export function OptionGroup<T extends string>({
             onPress={() => onChange(option.value)}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
+            accessibilityLabel={
+              option.description ? `${option.label}. ${option.description}` : option.label
+            }
             style={[
               styles.option,
               {
@@ -39,7 +42,12 @@ export function OptionGroup<T extends string>({
                 borderWidth: selected ? 2 : 1,
               },
             ]}>
-            <Text style={[typography.body, { color: colors.text }]}>{option.label}</Text>
+            <Text style={[typography.bodyMedium, { color: colors.text }]}>{option.label}</Text>
+            {option.description ? (
+              <Text style={[typography.caption, { color: colors.textMuted }]}>
+                {option.description}
+              </Text>
+            ) : null}
           </Pressable>
         );
       })}
@@ -59,6 +67,8 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     justifyContent: 'center',
+    gap: spacing.xs,
   },
 });

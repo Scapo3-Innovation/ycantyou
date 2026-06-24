@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
+import type { ImageSourcePropType } from 'react-native';
 
 export type WelcomeSlide = {
-  icon: keyof typeof Ionicons.glyphMap;
+  image: ImageSourcePropType;
   title: string;
   body: string;
 };
@@ -9,17 +9,17 @@ export type WelcomeSlide = {
 /** The 2–3 intro slides shown before sign-in. */
 export const WELCOME_SLIDES: readonly WelcomeSlide[] = [
   {
-    icon: 'calendar-outline',
+    image: require('../../assets/images/welcome/cycle.jpg'),
     title: 'Understand your cycle',
     body: 'Track your periods and symptoms and learn what your body is telling you — honestly, even when cycles are irregular.',
   },
   {
-    icon: 'lock-closed-outline',
+    image: require('../../assets/images/welcome/privacy.jpg'),
     title: 'Private by design',
     body: 'Your health data is yours. We collect only what a feature needs and never sell it. Export or delete everything anytime.',
   },
   {
-    icon: 'medkit-outline',
+    image: require('../../assets/images/welcome/screening.jpg'),
     title: 'Screening, not diagnosis',
     body: 'Our PCOS screener helps you decide whether to see a clinician. It never diagnoses — only a doctor can.',
   },

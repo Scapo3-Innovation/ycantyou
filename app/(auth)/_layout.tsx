@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-// Start on the welcome carousel; it redirects returning users straight to sign-in.
+// First launch shows welcome; returning users skip to sign-in unless replay=1.
 export const unstable_settings = {
   initialRouteName: 'welcome',
 };

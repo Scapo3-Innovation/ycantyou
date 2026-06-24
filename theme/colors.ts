@@ -1,25 +1,32 @@
 /**
- * Design tokens — color palette.
+ * Design tokens — ycantyou brand palette.
  *
- * A clean, white, minimal system: white/near-white surfaces, one warm primary accent
- * used sparingly, and a calm secondary for positive/insight accents. Single (light)
- * theme — components reference these tokens directly (no light/dark branching).
+ * Warm, trustworthy, calm. Single light theme — components reference these tokens
+ * directly (no light/dark branching).
  */
 
 export const colors = {
-  background: '#FFFFFF', // app background
-  surfaceAlt: '#F7F8FA', // subtle recessed areas / chips
-  surface: '#FFFFFF', // cards
-  border: '#ECEEF1', // subtle card + hairline border
+  background: '#FAFAFB',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F7F8FA',
 
-  text: '#1C1C1E', // primary text / key numbers
-  textMuted: '#6E7178', // secondary text
-  textFaint: '#9AA0A6', // tertiary / disabled / tab inactive
+  border: '#ECEEF1',
 
-  primary: '#E76A8A', // THE accent — primary actions, active state, key numbers
+  text: '#1C1C1E',
+  textMuted: '#6E7178',
+  textFaint: '#9AA0A6',
+
+  /** Primary accent — CTAs, active states, key highlights. */
+  primary: '#E76A8A',
   primaryText: '#FFFFFF',
-  secondary: '#3BA99C', // positive / insight accent
+
+  /** Secondary accent — positive states, insights, progress. */
+  secondary: '#3BA99C',
   secondaryText: '#FFFFFF',
+
+  /** Supporting tints for cards and soft backgrounds. */
+  roseTint: '#FCECF1',
+  tealTint: '#E7F5F2',
 
   success: '#3BA99C',
   warning: '#C8862A',

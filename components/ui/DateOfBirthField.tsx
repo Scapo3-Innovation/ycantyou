@@ -68,7 +68,7 @@ export function DateOfBirthField({
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
-        <Text style={[typography.caption, styles.label, { color: c.textMuted }]}>{label}</Text>
+        <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
         <View
           style={[
             styles.inputRow,
@@ -87,11 +87,10 @@ export function DateOfBirthField({
               borderWidth: 0,
               padding: 0,
               fontSize: typography.body.fontSize,
-              fontWeight: typography.body.fontWeight,
+              fontFamily: typography.body.fontFamily,
               lineHeight: `${typography.body.lineHeight}px`,
               color: c.text,
               backgroundColor: 'transparent',
-              fontFamily: 'inherit',
             },
           })}
           <Ionicons name="calendar-outline" size={20} color={c.textMuted} />
@@ -107,7 +106,7 @@ export function DateOfBirthField({
 
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: c.textMuted }]}>{label}</Text>
+      <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -153,11 +152,9 @@ export function DateOfBirthField({
               style={[styles.sheet, { backgroundColor: c.surface }]}
               onPress={(event) => event.stopPropagation()}>
               <View style={styles.sheetHeader}>
-                <Text style={[typography.body, { color: c.text, fontWeight: '600' }]}>
-                  Date of birth
-                </Text>
+                <Text style={[typography.bodyMedium, { color: c.text }]}>Date of birth</Text>
                 <Pressable onPress={confirmIosDate} hitSlop={8}>
-                  <Text style={[typography.body, { color: c.primary, fontWeight: '600' }]}>Done</Text>
+                  <Text style={[typography.bodyMedium, { color: c.primary }]}>Done</Text>
                 </Pressable>
               </View>
               <DateTimePicker
@@ -180,9 +177,6 @@ export function DateOfBirthField({
 const styles = StyleSheet.create({
   container: {
     gap: spacing.xs,
-  },
-  label: {
-    fontWeight: '600',
   },
   inputRow: {
     minHeight: 52,

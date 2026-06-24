@@ -1,22 +1,35 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { Button } from '@/components/ui/Button';
+import { FadeInView } from '@/components/ui/FadeInView';
+import { HeroBanner } from '@/components/ui/HeroBanner';
 import { PrivacyNote } from '@/components/ui/PrivacyNote';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, screenBodyPadding } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { sendEmailOtp, signInAsGuest } from '@/features/auth/api';
 import { emailSchema } from '@/features/auth/validation';
 import { PRIVACY_POLICY_URL } from '@/features/onboarding/constants';
+import { onboardingImages } from '@/features/onboarding/images';
 import { colors, spacing, typography } from '@/theme';
 
-// DEV/testing only — gates the "Continue as guest" button. Auto-hidden in production
-// builds (`__DEV__` is false there); flip/remove this before launch. See signInAsGuest().
 const SHOW_GUEST_SIGN_IN = __DEV__;
 
 export default function SignInScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const c = colors;
 
   const [email, setEmail] = useState('');
@@ -25,8 +38,6 @@ export default function SignInScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
 
-  // DEV/testing only — sign in anonymously. The auth listener then redirects into
-  // onboarding automatically, so the guest is treated like any signed-in user.
   async function onContinueAsGuest() {
     setSubmitError(undefined);
     setGuestLoading(true);
@@ -58,51 +69,76 @@ export default function SignInScreen() {
   }
 
   return (
-    <Screen>
+    <Screen edgeToEdge>
+      <Pressable
+        onPress={() => router.push('/(auth)/welcome?replay=1')}
+        accessibilityRole="button"
+        accessibilityLabel="See how the app works"
+        hitSlop={12}
+        style={[styles.introLink, { top: insets.top + spacing.sm, right: spacing.lg }]}>
+        <Text style={[typography.caption, { color: c.textFaint }]}>How it works</Text>
+      </Pressable>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[typography.title, { color: c.text }]}>Sign in</Text>
-            <Text style={[typography.body, { color: c.textMuted }]}>
-              Enter your email and we&apos;ll send you a 6-digit code.
-            </Text>
+        <HeroBanner
+          image={onboardingImages.cycle}
+          title="Sign in"
+          subtitle="Enter your email and we'll send you a 6-digit code."
+          compact
+          topInset={insets.top}
+        />
+
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={[styles.form, screenBodyPadding]}>
+            <BrandLogo variant="full" size={180} style={styles.logo} />
+
+            <FadeInView delay={120}>
+              <TextField
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                error={fieldError}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                inputMode="email"
+                autoCorrect={false}
+                placeholder="you@example.com"
+                returnKeyType="send"
+                onSubmitEditing={onSubmit}
+              />
+            </FadeInView>
+
+            {submitError ? (
+              <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
+            ) : null}
+
+            <FadeInView delay={200}>
+              <Button label="Send code" onPress={onSubmit} loading={submitting} />
+            </FadeInView>
+
+            {SHOW_GUEST_SIGN_IN ? (
+              <FadeInView delay={280}>
+                <Button
+                  label="Continue as guest"
+                  variant="secondary"
+                  onPress={onContinueAsGuest}
+                  loading={guestLoading}
+                />
+              </FadeInView>
+            ) : null}
+
+            <FadeInView delay={360}>
+              <PrivacyNote onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} />
+            </FadeInView>
           </View>
-
-          <TextField
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            error={fieldError}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            inputMode="email"
-            autoCorrect={false}
-            placeholder="you@example.com"
-            returnKeyType="send"
-            onSubmitEditing={onSubmit}
-          />
-
-          {submitError ? (
-            <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
-          ) : null}
-
-          <Button label="Send code" onPress={onSubmit} loading={submitting} />
-
-          {/* DEV/testing only — remove before launch (gated by SHOW_GUEST_SIGN_IN). */}
-          {SHOW_GUEST_SIGN_IN ? (
-            <Button
-              label="Continue as guest"
-              variant="secondary"
-              onPress={onContinueAsGuest}
-              loading={guestLoading}
-            />
-          ) : null}
-
-          <PrivacyNote onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)} />
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -112,12 +148,20 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'center',
+    paddingVertical: spacing.md,
+  },
+  form: {
     gap: spacing.lg,
   },
-  header: {
-    gap: spacing.sm,
+  logo: {
+    alignSelf: 'center',
+    marginBottom: spacing.xs,
+  },
+  introLink: {
+    position: 'absolute',
+    zIndex: 1,
   },
 });

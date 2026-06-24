@@ -46,7 +46,7 @@ export default function NewPostScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <ScreenHeader title="New post" onBack={() => router.back()} />
+          <ScreenHeader onBack={() => router.back()} />
 
           <ContentRules />
 

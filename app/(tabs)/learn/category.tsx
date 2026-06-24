@@ -23,7 +23,7 @@ export default function CategoryScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title={name ?? 'Articles'} onBack={() => router.back()} />
+        <ScreenHeader onBack={() => router.back()} />
 
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />

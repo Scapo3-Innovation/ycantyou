@@ -1,12 +1,14 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { colors, spacing } from '@/theme';
 
-/** Full-screen centered spinner — used as the boot/splash gate while auth restores. */
+/** Full-screen boot gate — brand mark while auth/session restores. */
 export function LoadingScreen() {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <BrandLogo variant="icon" size={88} />
+      <ActivityIndicator size="small" color={colors.primary} style={styles.spinner} />
     </View>
   );
 }
@@ -17,5 +19,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
+    gap: spacing.lg,
+  },
+  spinner: {
+    marginTop: spacing.sm,
   },
 });

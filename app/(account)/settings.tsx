@@ -84,7 +84,7 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Settings & privacy" onBack={() => router.back()} />
+        <ScreenHeader onBack={() => router.back()} />
 
         <Card>
           <View style={styles.promiseHeader}>

@@ -82,7 +82,6 @@ export default function UpgradeScreen() {
         style={styles.flex}>
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text style={[typography.title, { color: c.text }]}>Link an email</Text>
             <Text style={[typography.body, { color: c.textMuted }]}>
               {step === 'email'
                 ? 'Add an email to turn your guest session into a permanent account. Your data stays exactly as it is.'

@@ -100,8 +100,7 @@ export default function DayLogScreen() {
         style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={[typography.title, { color: c.text }]}>Daily log</Text>
-            <Text style={[typography.body, { color: c.textMuted }]}>
+            <Text style={[typography.bodyMedium, { color: c.text }]}>
               {format(new Date(`${date}T00:00:00`), 'EEEE, d MMMM yyyy')}
             </Text>
           </View>

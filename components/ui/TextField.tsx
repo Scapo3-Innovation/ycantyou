@@ -15,7 +15,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 ) {
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[typography.captionMedium, { color: colors.textMuted }]}>{label}</Text>
       <TextInput
         ref={ref}
         placeholderTextColor={colors.textFaint}
@@ -43,9 +43,6 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 const styles = StyleSheet.create({
   container: {
     gap: spacing.xs,
-  },
-  label: {
-    fontWeight: '600',
   },
   input: {
     minHeight: 52,

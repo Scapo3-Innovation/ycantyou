@@ -33,8 +33,6 @@ export default function ProfileScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Profile</Text>
-
         {isGuest ? (
           <Card>
             <Text style={[typography.body, styles.guestTitle, { color: c.text }]}>

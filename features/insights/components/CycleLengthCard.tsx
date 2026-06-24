@@ -33,7 +33,7 @@ export function CycleLengthCard({ stats }: { stats: CycleLengthStats | undefined
   return (
     <InsightCard title="Cycle length">
       <View style={styles.headerRow}>
-        <Text style={[typography.title, { color: c.text }]}>{stats.avg_length} days</Text>
+        <Text style={[typography.h1, { color: c.text }]}>{stats.avg_length} days</Text>
         <View style={[styles.badge, { backgroundColor: regular ? c.success : c.warning }]}>
           <Text style={[typography.caption, styles.badgeText, { color: c.primaryText }]}>
             {regular ? 'Fairly regular' : 'Irregular'}

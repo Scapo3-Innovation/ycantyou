@@ -118,7 +118,7 @@ export default function PostDetailScreen() {
   if (!data) {
     return (
       <Screen>
-        <ScreenHeader title="Post" onBack={() => router.back()} />
+        <ScreenHeader onBack={() => router.back()} />
         <EmptyState icon="chatbubble-outline" title="Post not found" message="It may have been removed." />
       </Screen>
     );
@@ -135,7 +135,7 @@ export default function PostDetailScreen() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <ScreenHeader title="Post" onBack={() => router.back()} />
+          <ScreenHeader onBack={() => router.back()} />
 
           <Card>
             <View style={styles.rowBetween}>

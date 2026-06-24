@@ -10,7 +10,7 @@ import { TextField } from '@/components/ui/TextField';
 import { useDeletePeriod, useLogPeriod, useUpdatePeriod } from '@/features/tracking/mutations';
 import { useCycles } from '@/features/tracking/queries';
 import { periodSchema } from '@/features/tracking/validation';
-import { colors, spacing, typography } from '@/theme';
+import { calendarFontTheme, colors, spacing, typography } from '@/theme';
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
 
@@ -92,15 +92,12 @@ export default function PeriodScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={[typography.title, { color: c.text }]}>
-            {editing ? 'Edit period' : 'Log period'}
-          </Text>
-          <Text style={[typography.body, { color: c.textMuted }]}>
-            Tap your period&apos;s start day, then its last day. Leave the end unset if it&apos;s
-            ongoing.
-          </Text>
-        </View>
+          <View style={styles.header}>
+            <Text style={[typography.body, { color: c.textMuted }]}>
+              Tap your period&apos;s start day, then its last day. Leave the end unset if it&apos;s
+              ongoing.
+            </Text>
+          </View>
 
         <Calendar
           markingType="period"
@@ -108,6 +105,7 @@ export default function PeriodScreen() {
           onDayPress={(day) => onDayPress(day.dateString)}
           enableSwipeMonths
           theme={{
+            ...calendarFontTheme,
             calendarBackground: c.background,
             dayTextColor: c.text,
             monthTextColor: c.text,

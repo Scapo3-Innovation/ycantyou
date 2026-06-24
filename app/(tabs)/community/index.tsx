@@ -69,7 +69,7 @@ export default function CommunityScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
-            <ScreenHeader title="Community" subtitle="A supportive space — you're not alone." />
+            <ScreenHeader subtitle="A supportive space — you're not alone." />
             <ContentRules />
             <Button
               label="New post"

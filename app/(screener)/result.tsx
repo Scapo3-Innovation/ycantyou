@@ -56,8 +56,6 @@ export default function ScreenerResultScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Your result</Text>
-
         {/* Disclaimer first and prominent — never let the band read as a diagnosis. */}
         <ResultDisclaimer />
 

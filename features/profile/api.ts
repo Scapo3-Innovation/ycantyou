@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { Profile, ProfileUpdate } from '@/types/database';
 
+import { saveProfileFields } from './saveProfileFields';
+
 /** Fetch the signed-in user's profile row. */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -13,14 +15,8 @@ export async function updateProfile(
   userId: string,
   patch: Partial<ProfileUpdate>,
 ): Promise<Profile> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(patch)
-    .eq('id', userId)
-    .select('*')
-    .single();
-  if (error) throw error;
-  return data as Profile;
+  await saveProfileFields(userId, patch);
+  return fetchProfile(userId);
 }
 
 /**

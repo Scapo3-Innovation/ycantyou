@@ -5,6 +5,7 @@
  */
 
 export type Goal = 'cycle' | 'fertility' | 'symptoms' | 'weight' | 'mood';
+export type SexAtBirth = 'female' | 'male' | 'prefer_not_to_say';
 export type OnboardingStatus = 'pending' | 'completed';
 
 /** A row in public.profiles (1:1 with auth.users). */
@@ -12,6 +13,7 @@ export type Profile = {
   id: string;
   full_name: string | null;
   dob: string | null; // ISO date (YYYY-MM-DD)
+  sex_assigned_at_birth: SexAtBirth | null;
   language: string;
   goal: Goal | null;
   onboarding_status: OnboardingStatus;
@@ -24,8 +26,8 @@ export type Profile = {
 export type ProfileUpdate = {
   full_name: string;
   dob: string;
+  sex_assigned_at_birth: SexAtBirth;
   goal: Goal;
-  language: string;
 };
 
 /** A row in public.consents (versioned, for DPDP). */

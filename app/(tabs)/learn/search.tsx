@@ -24,7 +24,7 @@ export default function SearchScreen() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Search" onBack={() => router.back()} />
+        <ScreenHeader onBack={() => router.back()} />
 
         <TextField
           label="Search articles"

@@ -17,7 +17,7 @@ import {
 } from '@/features/tracking/notifications';
 import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
 import { useReminders } from '@/features/tracking/useReminders';
-import { colors, spacing, typography } from '@/theme';
+import { calendarFontTheme, colors, spacing, typography } from '@/theme';
 
 export default function TrackScreen() {
   const router = useRouter();
@@ -83,14 +83,13 @@ export default function TrackScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[typography.title, { color: c.text }]}>Track</Text>
-
         <Calendar
           markingType="custom"
           markedDates={markedDates}
           onDayPress={(day) => setSelectedDate(day.dateString)}
           enableSwipeMonths
           theme={{
+            ...calendarFontTheme,
             calendarBackground: c.background,
             dayTextColor: c.text,
             monthTextColor: c.text,

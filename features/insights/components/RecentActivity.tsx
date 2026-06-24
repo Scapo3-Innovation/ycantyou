@@ -19,7 +19,7 @@ export function RecentActivity({ logs }: { logs: DailyLog[] }) {
   return (
     <InsightCard title="Recent activity">
       {recent.length === 0 ? (
-        <InsightEmptyState message="No logs yet. Tap “Log today” to start." />
+        <InsightEmptyState message="No logs yet. Tap Log today to start." />
       ) : (
         <View style={styles.list}>
           {recent.map((log) => {
