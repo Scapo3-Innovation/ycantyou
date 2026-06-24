@@ -119,3 +119,38 @@ export type ScreenerResult = {
   risk_band: RiskBand;
   created_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// Module 7 — education / content hub
+// ---------------------------------------------------------------------------
+
+/** A row in public.content_categories. */
+export type ContentCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  language: string;
+  sort_order: number;
+};
+
+/** A row in public.content_articles. */
+export type ContentArticle = {
+  id: string;
+  slug: string;
+  title: string;
+  body: string | null;
+  language: string;
+  category_id: string | null;
+  published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A row in public.content_bookmarks (owner-only saved article). */
+export type ContentBookmark = {
+  id: string;
+  user_id: string;
+  article_id: string;
+  created_at: string;
+};
