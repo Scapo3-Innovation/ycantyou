@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Divider } from '@/components/ui/Divider';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { ListItem } from '@/components/ui/ListItem';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
@@ -14,7 +15,7 @@ import { spacing } from '@/theme';
 
 export default function BookmarksScreen() {
   const router = useRouter();
-  const { data: articles = [], isLoading } = useBookmarkedArticles();
+  const { data: articles = [], isLoading, isError, refetch } = useBookmarkedArticles();
 
   if (isLoading) return <LoadingScreen />;
 
@@ -23,7 +24,9 @@ export default function BookmarksScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <ScreenHeader title="Saved articles" onBack={() => router.back()} />
 
-        {articles.length === 0 ? (
+        {isError ? (
+          <ErrorState onRetry={() => void refetch()} />
+        ) : articles.length === 0 ? (
           <EmptyState
             icon="bookmark-outline"
             title="No saved articles yet"

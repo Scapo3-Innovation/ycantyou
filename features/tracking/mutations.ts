@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { analytics } from '@/lib/analytics';
 import type { Cycle, DailyLogWithSymptoms } from '@/types/database';
 
 import {
@@ -37,6 +38,7 @@ export function useLogPeriod() {
 
   return useMutation({
     mutationFn: (form: PeriodForm) => insertCycle(userId as string, form),
+    onSuccess: () => analytics.track('cycle_logged'),
     onMutate: async (form) => {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<Cycle[]>(key);
@@ -135,6 +137,7 @@ export function useUpsertDailyLog(date: string) {
 
   return useMutation({
     mutationFn: (form: DailyLogForm) => upsertDailyLog(userId as string, date, form),
+    onSuccess: () => analytics.track('daily_log_saved'),
     onMutate: async (form) => {
       await qc.cancelQueries({ queryKey: dayKey });
       await qc.cancelQueries({ queryKey: recentKey });

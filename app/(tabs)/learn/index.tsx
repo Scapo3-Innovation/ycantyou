@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Divider } from '@/components/ui/Divider';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { ListItem } from '@/components/ui/ListItem';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,7 +17,7 @@ import { colors, radius, spacing, typography } from '@/theme';
 
 export default function LearnScreen() {
   const router = useRouter();
-  const { data: categories = [], isLoading } = useCategories();
+  const { data: categories = [], isLoading, isError, refetch } = useCategories();
 
   return (
     <Screen>
@@ -41,7 +42,9 @@ export default function LearnScreen() {
 
         <SectionHeader title="Topics" />
 
-        {isLoading ? null : categories.length === 0 ? (
+        {isLoading ? null : isError ? (
+          <ErrorState onRetry={() => void refetch()} />
+        ) : categories.length === 0 ? (
           <EmptyState icon="book-outline" title="No topics yet" message="Check back soon." />
         ) : (
           <Card>

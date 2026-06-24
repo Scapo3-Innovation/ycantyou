@@ -154,3 +154,59 @@ export type ContentBookmark = {
   article_id: string;
   created_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// Module 8 — community
+// ---------------------------------------------------------------------------
+
+/** A row in public.community_posts. */
+export type CommunityPost = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  body: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+/** A row in public.community_comments. */
+export type CommunityComment = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+/** A row in public.community_likes. */
+export type CommunityLike = {
+  id: string;
+  post_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+/** A row in public.community_blocks (owner-only). */
+export type CommunityBlock = {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+};
+
+/** Report status lifecycle (moderation queue). */
+export type ReportStatus = 'open' | 'reviewed' | 'actioned' | 'dismissed';
+
+/** A row in public.community_reports. */
+export type CommunityReport = {
+  id: string;
+  reporter_id: string;
+  post_id: string | null;
+  comment_id: string | null;
+  reason: string | null;
+  status: ReportStatus;
+  created_at: string;
+};

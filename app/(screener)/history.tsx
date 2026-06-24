@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { HistoryList } from '@/features/screener/components/HistoryList';
@@ -12,7 +13,7 @@ export default function ScreenerHistoryScreen() {
   const router = useRouter();
   const c = colors;
 
-  const { data: results = [], isLoading } = useScreenerHistory();
+  const { data: results = [], isLoading, isError, refetch } = useScreenerHistory();
 
   if (isLoading) return <LoadingScreen />;
 
@@ -21,12 +22,16 @@ export default function ScreenerHistoryScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[typography.title, { color: c.text }]}>Past results</Text>
 
-        <HistoryList
-          results={results}
-          onSelect={(sessionId) =>
-            router.push({ pathname: '/(screener)/result', params: { sessionId } })
-          }
-        />
+        {isError ? (
+          <ErrorState onRetry={() => void refetch()} />
+        ) : (
+          <HistoryList
+            results={results}
+            onSelect={(sessionId) =>
+              router.push({ pathname: '/(screener)/result', params: { sessionId } })
+            }
+          />
+        )}
 
         <View style={styles.actions}>
           <Button label="Take the screener" onPress={() => router.replace('/(screener)/questions')} />

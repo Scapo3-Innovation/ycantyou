@@ -1,66 +1,59 @@
-// ============================================================================
-// delete-account — Supabase Edge Function (STUB — NOT DEPLOYED)
-// ============================================================================
-// PURPOSE
-//   Permanently delete the calling user's auth account. Because every user-owned
-//   table references public.profiles(id) -> auth.users(id) ON DELETE CASCADE,
-//   removing the auth user cascades away all of their data (DPDP right to erase).
-//
-// WHY SERVER-SIDE
-//   Deleting an auth user requires the SERVICE-ROLE key (admin). That key must
-//   NEVER ship in the app. This function runs server-side with the service-role
-//   key provided as a function secret — it is the only safe place to do this.
-//
-// SECURITY — FLAGGED FOR HUMAN REVIEW BEFORE DEPLOY
-//   * Authenticate the caller from their JWT (Authorization header) and delete
-//     ONLY that user — never trust a user id from the request body.
-//   * Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as function secrets
-//     (supabase secrets set ...). Do not hardcode.
-//   * Consider a soft-delete / grace period before hard deletion.
-//
-// DEPLOY (later, not in this module):
-//   supabase functions deploy delete-account
-//
-// This file is intentionally excluded from the app tsconfig/eslint (Deno runtime).
-// The types below are declared loosely so it does not need the Deno toolchain to read.
-// ============================================================================
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// @ts-nocheck
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+/**
+ * delete-account — permanently delete the CALLING user's account (DPDP right to erase).
+ *
+ * Every user-owned table references public.profiles(id) → auth.users(id) ON DELETE CASCADE,
+ * so deleting the auth user cascades away all of their data.
+ *
+ * SECURITY (the ONLY place a service-role key is used):
+ *  - The caller is identified from their JWT via an ANON client — never from the request body.
+ *  - A separate SERVICE-ROLE client performs admin.deleteUser(user.id) for THAT user only.
+ *  - No personal data is logged.
+ *
+ * Deploy:  supabase functions deploy delete-account   (keep JWT verification ON — default)
+ * Env:     SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected
+ *          automatically by the platform — nothing to set.
+ */
 
-Deno.serve(async (req: Request) => {
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const json = (payload: unknown, status = 200): Response =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
-        status: 401,
-      });
-    }
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Missing authorization" }, 401);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(JSON.stringify({ error: 'Function not configured' }), { status: 500 });
-    }
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Identify the caller from their JWT — never from the request body.
-    const userClient = createClient(supabaseUrl, serviceRoleKey, {
+    // Identify the caller from their JWT ONLY (anon client + their bearer token).
+    const caller = createClient(url, anonKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
     });
-    const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData.user) {
-      return new Response(JSON.stringify({ error: 'Invalid session' }), { status: 401 });
-    }
+    const { data: userData, error: userErr } = await caller.auth.getUser();
+    const user = userData?.user;
+    if (userErr || !user) return json({ error: "Unauthorized" }, 401);
 
-    // Admin client deletes the caller; FK cascade removes their data.
-    const admin = createClient(supabaseUrl, serviceRoleKey);
-    const { error: deleteError } = await admin.auth.admin.deleteUser(userData.user.id);
-    if (deleteError) {
-      return new Response(JSON.stringify({ error: 'Delete failed' }), { status: 500 });
-    }
+    // Admin client deletes exactly that user; FK cascade removes all of their rows.
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+    const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
+    if (delErr) return json({ error: "Delete failed" }, 500);
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return json({ ok: true }, 200); // no personal data logged
   } catch {
-    return new Response(JSON.stringify({ error: 'Unexpected error' }), { status: 500 });
+    return json({ error: "Unexpected error" }, 500);
   }
 });

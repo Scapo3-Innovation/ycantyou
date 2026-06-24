@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,23 +8,24 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useProfile } from '@/features/profile/useProfile';
+import { persistOptions } from '@/lib/persister';
 import { queryClient } from '@/lib/queryClient';
 
 /**
- * Root layout: installs the URL polyfill (required by supabase-js on RN),
- * wraps the app in the TanStack Query provider, safe-area context, and the auth
- * provider, then hands off to the guarded navigator.
+ * Root layout: installs the URL polyfill (required by supabase-js on RN), wraps the app in
+ * the persisted TanStack Query provider (offline reads for public content only), safe-area
+ * context, and the auth provider, then hands off to the guarded navigator.
  */
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <SafeAreaProvider>
         <AuthProvider>
           <RootNavigator />
           <StatusBar style="auto" />
         </AuthProvider>
       </SafeAreaProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

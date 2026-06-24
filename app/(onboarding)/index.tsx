@@ -11,6 +11,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasHealthDataConsent, recordConsent } from '@/features/onboarding/api';
 import { PRIVACY_POLICY_URL } from '@/features/onboarding/constants';
+import { analytics } from '@/lib/analytics';
 import { colors, spacing, typography } from '@/theme';
 
 export default function ConsentScreen() {
@@ -51,6 +52,7 @@ export default function ConsentScreen() {
     setSubmitting(true);
     try {
       await recordConsent(userId);
+      analytics.track('consent_granted');
       router.replace('/(onboarding)/details');
     } catch {
       setError('Could not save your consent. Please try again.');

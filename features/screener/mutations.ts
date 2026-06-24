@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { analytics } from '@/lib/analytics';
 
 import { insertResponses, invokeScoring } from './api';
 import { screenerKeys } from './queries';
@@ -30,6 +31,8 @@ export function useSubmitScreener() {
       // The Edge Function wrote the authoritative result row; refetch it + history.
       void qc.invalidateQueries({ queryKey: screenerKeys.result(result.session_id) });
       void qc.invalidateQueries({ queryKey: screenerKeys.history(userId) });
+      // No health data in the event — the risk band is deliberately NOT sent.
+      analytics.track('screener_completed');
     },
   });
 }

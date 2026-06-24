@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
+import { analytics } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
 type AuthContextValue = {
@@ -45,6 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // anonymous — NEVER tokens, email, or any personal data (see CLAUDE.md).
       console.log(`[auth] ${event} (guest=${nextSession?.user.is_anonymous ?? false})`);
       setSession(nextSession);
+
+      // Analytics: associate events with the user id (UUID only); no PII/health data.
+      if (nextSession?.user) {
+        analytics.identify(nextSession.user.id);
+        if (event === 'SIGNED_IN') analytics.track('signed_in');
+      } else if (event === 'SIGNED_OUT') {
+        analytics.reset();
+      }
     });
 
     return () => {

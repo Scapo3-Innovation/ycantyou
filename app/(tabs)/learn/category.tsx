@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { Divider } from '@/components/ui/Divider';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { ListItem } from '@/components/ui/ListItem';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
@@ -15,7 +16,7 @@ import { spacing } from '@/theme';
 export default function CategoryScreen() {
   const router = useRouter();
   const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
-  const { data: articles = [], isLoading } = useArticlesByCategory(id ?? '');
+  const { data: articles = [], isLoading, isError, refetch } = useArticlesByCategory(id ?? '');
 
   if (isLoading) return <LoadingScreen />;
 
@@ -24,7 +25,9 @@ export default function CategoryScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <ScreenHeader title={name ?? 'Articles'} onBack={() => router.back()} />
 
-        {articles.length === 0 ? (
+        {isError ? (
+          <ErrorState onRetry={() => void refetch()} />
+        ) : articles.length === 0 ? (
           <EmptyState
             icon="document-text-outline"
             title="No articles yet"

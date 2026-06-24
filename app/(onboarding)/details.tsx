@@ -19,6 +19,7 @@ import { completeOnboarding } from '@/features/onboarding/api';
 import { GOALS, LANGUAGES } from '@/features/onboarding/constants';
 import { onboardingDetailsSchema } from '@/features/onboarding/validation';
 import { profileQueryKey } from '@/features/profile/useProfile';
+import { analytics } from '@/lib/analytics';
 import { colors, spacing, typography } from '@/theme';
 import type { Goal } from '@/types/database';
 
@@ -60,6 +61,7 @@ export default function DetailsScreen() {
     setSubmitting(true);
     try {
       await completeOnboarding(userId, parsed.data);
+      analytics.track('onboarding_completed');
       // Flip the routing guard: re-fetch the profile (now onboarding_status='completed').
       await queryClient.invalidateQueries({ queryKey: profileQueryKey(userId) });
     } catch {

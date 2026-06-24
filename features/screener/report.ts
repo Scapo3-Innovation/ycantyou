@@ -3,6 +3,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 import { computeCyclePrediction } from '@/features/tracking/prediction';
+import { analytics } from '@/lib/analytics';
 import type { Cycle, DailyLog, ScreenerResult } from '@/types/database';
 
 import { DISCLAIMER_LONG, DISCLAIMER_SHORT, RISK_BAND_LABEL } from './constants';
@@ -121,5 +122,6 @@ export async function generateAndShareReport(input: ReportInput): Promise<boolea
     dialogTitle: 'PCOS screening summary',
     UTI: 'com.adobe.pdf',
   });
+  analytics.track('doctor_report_generated');
   return true;
 }
