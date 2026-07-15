@@ -2,7 +2,6 @@ import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -44,6 +44,7 @@ function LogSection({ title, hint, children }: { title: string; hint?: string; c
 
 export default function DayLogScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const params = useLocalSearchParams<{ date?: string; mood?: string }>();
   const date = params.date ?? format(new Date(), 'yyyy-MM-dd');
   const prefilledMood = parseMoodParam(params.mood);
@@ -104,7 +105,7 @@ export default function DayLogScreen() {
 
   function onDelete() {
     if (!existing) return;
-    Alert.alert('Delete log', `Delete your log for ${date}?`, [
+    alert('Delete log', `Delete your log for ${date}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

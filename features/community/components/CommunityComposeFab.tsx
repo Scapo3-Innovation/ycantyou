@@ -1,56 +1,56 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TourAnchor } from '@/features/tour/TourAnchor';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { colors, FLOATING_TAB_BAR_HEIGHT, shadows, spacing } from '@/theme';
 
 type CommunityComposeFabProps = {
   onPress: () => void;
 };
 
-/** Centered pill — Flo-style "New post" above the tab bar. */
+/** Circular compose button — primary outline on the right, above the tab bar. */
 export function CommunityComposeFab({ onPress }: CommunityComposeFabProps) {
+  const insets = useSafeAreaInsets();
+  const bottom =
+    Math.max(insets.bottom, spacing.sm) + FLOATING_TAB_BAR_HEIGHT + spacing.md;
+
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View style={[styles.wrap, { bottom }]} pointerEvents="box-none">
       <TourAnchor id="tour-community-compose">
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
           accessibilityLabel="New post"
           style={({ pressed }) => [styles.fab, pressed && styles.pressed]}>
-          <Ionicons name="create-outline" size={20} color={colors.primaryText} />
-          <Text style={[typography.button, styles.label]}>New post</Text>
+          <Ionicons name="add" size={28} color={colors.primary} />
         </Pressable>
       </TourAnchor>
     </View>
   );
 }
 
+const FAB_SIZE = 56;
+
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: spacing.lg,
-    alignItems: 'center',
+    right: spacing.lg,
+    zIndex: 10,
   },
   fab: {
-    flexDirection: 'row',
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radius.full,
-    minWidth: 160,
     justifyContent: 'center',
-    ...shadows.card,
-  },
-  label: {
-    color: colors.primaryText,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    ...shadows.glass,
   },
   pressed: {
     opacity: 0.92,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.96 }],
   },
 });

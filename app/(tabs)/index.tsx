@@ -91,6 +91,7 @@ export default function HomeScreen() {
             today={today}
             selectedDate={selectedDate}
             userName={profile?.full_name}
+            avatarUrl={profile?.avatar_url}
             onGoToToday={() => weekStripRef.current?.scrollToToday()}
           />
 

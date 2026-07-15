@@ -35,7 +35,7 @@ export const MOOD_OPTIONS: readonly WellnessOption[] = [
     value: 3,
     label: 'Okay',
     icon: 'remove-outline',
-    ring: '#E8B923',
+    ring: colors.textMuted,
     iconColor: colors.textMuted,
   },
   {
@@ -49,8 +49,8 @@ export const MOOD_OPTIONS: readonly WellnessOption[] = [
     value: 1,
     label: 'Stressed',
     icon: 'cloudy-night-outline',
-    ring: '#9B7EDE',
-    iconColor: '#9B7EDE',
+    ring: colors.primary,
+    iconColor: colors.primary,
   },
   {
     value: 5,
@@ -74,14 +74,14 @@ export const ENERGY_OPTIONS: readonly WellnessOption[] = [
     value: 2,
     label: 'Low',
     icon: 'moon-outline',
-    ring: '#9B7EDE',
-    iconColor: '#9B7EDE',
+    ring: colors.primary,
+    iconColor: colors.primary,
   },
   {
     value: 3,
     label: 'Steady',
     icon: 'leaf-outline',
-    ring: '#E8B923',
+    ring: colors.secondary,
     iconColor: colors.secondary,
   },
   {

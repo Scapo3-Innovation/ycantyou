@@ -118,8 +118,8 @@ export default function DetailsScreen() {
     }
   }
 
-  async function onSubmit() {
-    if (!userId) return;
+  async function onSubmit(options?: { skipGoal?: boolean }) {
+    if (!userId || submitting) return;
     setSubmitError(undefined);
 
     const basics = onboardingBasicsSchema.safeParse({
@@ -155,23 +155,34 @@ export default function DetailsScreen() {
         analytics.track('partner_code_redeemed');
         analytics.track('onboarding_completed', { mode: 'partner' });
       } else {
-        const parsed = onboardingGoalSchema.safeParse({ goal });
-        if (!parsed.success) {
-          const next: Step2Errors = {};
-          for (const issue of parsed.error.issues) {
-            const key = issue.path[0] as keyof Step2Errors;
-            if (key && !next[key]) next[key] = issue.message;
+        let goalValue: Goal | null = null;
+        if (options?.skipGoal) {
+          setStep2Errors({});
+        } else {
+          const parsed = onboardingGoalSchema.safeParse({ goal });
+          if (!parsed.success) {
+            const next: Step2Errors = {};
+            for (const issue of parsed.error.issues) {
+              const key = issue.path[0] as keyof Step2Errors;
+              if (key && !next[key]) next[key] = issue.message;
+            }
+            setStep2Errors(next);
+            setSubmitting(false);
+            return;
           }
-          setStep2Errors(next);
-          setSubmitting(false);
-          return;
+          goalValue = parsed.data.goal;
         }
-        setStep2Errors({});
         await completePrimaryOnboarding(userId, {
           ...basics.data,
-          goal: parsed.data.goal,
+          goal: goalValue,
         });
-        analytics.track('onboarding_completed', { mode: 'primary' });
+        if (options?.skipGoal) {
+          analytics.track('onboarding_goal_skipped');
+        }
+        analytics.track('onboarding_completed', {
+          mode: 'primary',
+          goal_skipped: Boolean(options?.skipGoal),
+        });
       }
 
       await queryClient.invalidateQueries({ queryKey: profileQueryKey(userId) });
@@ -181,6 +192,10 @@ export default function DetailsScreen() {
       );
       setSubmitting(false);
     }
+  }
+
+  function onSkipGoal() {
+    void onSubmit({ skipGoal: true });
   }
 
   function onPrimaryAction() {
@@ -196,7 +211,7 @@ export default function DetailsScreen() {
   function renderSecondStep() {
     if (step === 'path') {
       return (
-        <>
+        <View style={styles.stepBody}>
           <HeroBanner
             image={onboardingImages.goals}
             title="How will you use the app?"
@@ -216,13 +231,13 @@ export default function DetailsScreen() {
               hideLabel
             />
           </View>
-        </>
+        </View>
       );
     }
 
     if (step === 'code') {
       return (
-        <>
+        <View style={styles.stepBody}>
           <HeroBanner
             image={onboardingImages.basics}
             title="Enter her partner code"
@@ -237,22 +252,38 @@ export default function DetailsScreen() {
               error={step2Errors.partner_code ?? submitError}
             />
           </View>
-        </>
+        </View>
       );
     }
 
     return (
-      <>
-        <HeroBanner
-          image={onboardingImages.goals}
-          title="What's your main goal?"
-          subtitle="Pick what we highlight first — change anytime in profile."
-          compact
-          photoHeight={GOAL_HERO_HEIGHT}
-          topInset={insets.top}
-          copyBottomInset={0}
-        />
-        <View style={[styles.goalContent, screenBodyPadding]}>
+      <View style={styles.stepBody}>
+        <View style={styles.goalHeroWrap}>
+          <HeroBanner
+            image={onboardingImages.goals}
+            title="What's your main goal?"
+            subtitle="Pick what we highlight first — change anytime in profile."
+            compact
+            photoHeight={GOAL_HERO_HEIGHT}
+            topInset={insets.top}
+            copyBottomInset={spacing.xs}
+            copyOverlap={spacing.lg}
+          />
+          <Pressable
+            onPress={onSkipGoal}
+            disabled={submitting}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: submitting, busy: submitting }}
+            hitSlop={8}
+            style={[
+              styles.skipButton,
+              { top: insets.top + spacing.sm },
+              submitting && styles.skipButtonDisabled,
+            ]}>
+            <Text style={styles.skipLabel}>Skip</Text>
+          </Pressable>
+        </View>
+        <View style={[styles.goalContent, styles.goalOptionsContent, screenBodyPadding]}>
           <OptionGroup
             label="Your main goal"
             options={GOALS}
@@ -269,7 +300,7 @@ export default function DetailsScreen() {
             <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
           ) : null}
         </View>
-      </>
+      </View>
     );
   }
 
@@ -394,6 +425,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  stepBody: {
+    flex: 1,
+  },
+  goalHeroWrap: {
+    position: 'relative',
+    overflow: 'visible',
+  },
+  skipButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  skipButtonDisabled: {
+    opacity: 0.6,
+  },
+  skipLabel: {
+    ...typography.bodyMedium,
+    color: colors.primaryText,
+  },
   basicsScroll: {
     flexGrow: 1,
     paddingTop: spacing.lg,
@@ -407,8 +461,14 @@ const styles = StyleSheet.create({
   },
   goalContent: {
     flex: 1,
+    justifyContent: 'center',
     gap: spacing.sm,
-    paddingTop: spacing.xs,
+    paddingVertical: spacing.lg,
+  },
+  goalOptionsContent: {
+    marginTop: -spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   goalFootnote: {
     fontStyle: 'italic',

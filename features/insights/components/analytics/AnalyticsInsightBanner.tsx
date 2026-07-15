@@ -9,10 +9,10 @@ type AnalyticsInsightBannerProps = {
   highlight?: string;
 };
 
-/** One-line takeaway below a chart — replaces stacked headline + subline blocks. */
+/** One-line takeaway below a chart. */
 export function AnalyticsInsightBanner({ headline, subline, highlight }: AnalyticsInsightBannerProps) {
   return (
-    <View style={[styles.banner, { backgroundColor: colors.surfaceAlt }]}>
+    <View style={[styles.banner, { borderLeftColor: colors.primary }]}>
       <Text style={[analyticsTypography.body, { color: colors.text }]}>
         {headline}
         {highlight ? (
@@ -31,7 +31,10 @@ export function AnalyticsInsightBanner({ headline, subline, highlight }: Analyti
 
 const styles = StyleSheet.create({
   banner: {
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderLeftWidth: 3,
+    borderRadius: radius.sm,
+    paddingLeft: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
   },
 });

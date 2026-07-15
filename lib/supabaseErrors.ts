@@ -11,11 +11,13 @@ export function isSchemaNotReadyError(error: unknown): boolean {
 
   if (code === 'PGRST202') return true; // RPC/function not found
   if (code === 'PGRST204') return true; // column not in schema cache
+  if (code === 'PGRST205') return true; // table not in schema cache
   if (code === '42P01') return true; // undefined_table
   if (code === '42883') return true; // undefined_function
 
   return (
     message.includes('could not find the function') ||
+    message.includes('could not find the table') ||
     message.includes('does not exist') ||
     message.includes('schema cache') ||
     details.includes('does not exist')

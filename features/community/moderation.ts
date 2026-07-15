@@ -1,33 +1,18 @@
-import { Alert } from 'react-native';
+import type { ModerationMenuTarget } from '@/features/community/components/CommunityModerationSheet';
+import type { FeedPost, PostComment } from '@/features/community/types';
 
-import { REPORT_REASONS } from './constants';
-
-/** Second step of a report: pick a reason, then run the callback. */
-export function presentReportReasons(onPick: (reason: string) => void): void {
-  Alert.alert('Report — choose a reason', undefined, [
-    ...REPORT_REASONS.map((reason) => ({ text: reason, onPress: () => onPick(reason) })),
-    { text: 'Cancel', style: 'cancel' as const },
-  ]);
+export function moderationTargetFromPost(post: FeedPost): ModerationMenuTarget {
+  return { type: 'post', post };
 }
 
-type MenuHandlers = {
-  isOwn: boolean;
-  onReport?: () => void;
-  onBlock?: () => void;
-  onDelete?: () => void;
-};
+export function moderationTargetFromComment(comment: PostComment): ModerationMenuTarget {
+  return { type: 'comment', comment };
+}
 
-/** Open the per-item options menu. Own content → Delete; others' → Report / Block. */
-export function presentModerationMenu({ isOwn, onReport, onBlock, onDelete }: MenuHandlers): void {
-  const buttons: { text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }[] = [];
+export function authorIdFromTarget(target: ModerationMenuTarget): string {
+  return target.type === 'post' ? target.post.user_id : target.comment.user_id;
+}
 
-  if (isOwn) {
-    if (onDelete) buttons.push({ text: 'Delete', style: 'destructive', onPress: onDelete });
-  } else {
-    if (onReport) buttons.push({ text: 'Report', onPress: onReport });
-    if (onBlock) buttons.push({ text: 'Block author', style: 'destructive', onPress: onBlock });
-  }
-  buttons.push({ text: 'Cancel', style: 'cancel' });
-
-  Alert.alert('Options', undefined, buttons);
+export function authorLabelFromTarget(target: ModerationMenuTarget): string {
+  return target.type === 'post' ? target.post.authorLabel : target.comment.authorLabel;
 }

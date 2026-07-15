@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Card } from '@/components/ui/Card';
 import { PremiumListItem } from '@/components/ui/PremiumListItem';
 import { PremiumSectionLabel } from '@/components/ui/PremiumSection';
@@ -29,6 +30,7 @@ import { colors, fullScreenScrollContent, radius, spacing, typography } from '@/
 export default function SettingsScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { alert } = useAppDialog();
   const userId = session?.user.id;
   const reminders = useReminders();
   const { startTour } = useTour();
@@ -41,7 +43,7 @@ export default function SettingsScreen() {
       void signOut();
     },
     onError: () =>
-      Alert.alert('Could not delete account', 'Something went wrong. Please try again later.'),
+      alert('Could not delete account', 'Something went wrong. Please try again later.'),
   });
 
   async function runExport(kind: 'json' | 'pdf') {
@@ -50,16 +52,16 @@ export default function SettingsScreen() {
     try {
       const bundle = await gatherUserData(userId, new Date().toISOString());
       const ok = kind === 'json' ? await exportAsJson(bundle) : await exportAsPdf(bundle);
-      if (!ok) Alert.alert('Sharing unavailable', 'Sharing is not available on this device.');
+      if (!ok) alert('Sharing unavailable', 'Sharing is not available on this device.');
     } catch {
-      Alert.alert('Export failed', 'Could not gather your data. Please try again.');
+      alert('Export failed', 'Could not gather your data. Please try again.');
     } finally {
       setExporting(false);
     }
   }
 
   function onExport() {
-    Alert.alert(
+    alert(
       'Export your data',
       'Choose a format. Your data never leaves your device until you share it.',
       [
@@ -71,14 +73,14 @@ export default function SettingsScreen() {
   }
 
   function onDelete() {
-    Alert.alert('Delete account', 'This permanently deletes your account and all your data.', [
+    alert('Delete account', 'This permanently deletes your account and all your data.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Continue', style: 'destructive', onPress: confirmDelete },
     ]);
   }
 
   function confirmDelete() {
-    Alert.alert('Are you absolutely sure?', 'This cannot be undone. Everything will be erased.', [
+    alert('Are you absolutely sure?', 'This cannot be undone. Everything will be erased.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete forever', style: 'destructive', onPress: () => deleteMutation.mutate() },
     ]);
@@ -87,7 +89,7 @@ export default function SettingsScreen() {
   async function onToggleReminders() {
     const ok = await reminders.setEnabled(!reminders.enabled);
     if (!ok && !reminders.enabled) {
-      Alert.alert(
+      alert(
         'Notifications off',
         'Enable notifications in your device settings to get reminders.',
       );
@@ -129,15 +131,6 @@ export default function SettingsScreen() {
             subtitle="Walk through tabs and key features"
             leftIcon="compass-outline"
             onPress={() => void onReplayTour()}
-          />
-        </SettingsSection>
-
-        <SettingsSection label="Help & support">
-          <PremiumListItem
-            title="Send feedback"
-            subtitle="Report a bug, suggest a feature, or share thoughts"
-            leftIcon="chatbubble-ellipses-outline"
-            onPress={() => router.push('/(account)/feedback')}
           />
         </SettingsSection>
 

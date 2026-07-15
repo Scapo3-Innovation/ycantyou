@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,20 +21,24 @@ import { useOtpResendCooldown } from '@/features/auth/useOtpResendCooldown';
 import { otpSchema } from '@/features/auth/validation';
 import { onboardingImages } from '@/features/onboarding/images';
 import { colors, typography } from '@/theme';
-import { radius, spacing } from '@/theme/spacing';
+import { spacing } from '@/theme/spacing';
 
-const VERIFY_HERO_HEIGHT = 240;
-const VERIFY_HERO_HEIGHT_KEYBOARD = 96;
+const VERIFY_HERO_HEIGHT = 160;
+const BACK_BUTTON_HEIGHT = 40;
+
+function parseAuthMode(modeParam?: string): EmailAuthMode {
+  if (modeParam === 'recovery') return 'recovery';
+  return 'sign-up';
+}
 
 export default function VerifyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { email, mode: modeParam } = useLocalSearchParams<{ email: string; mode?: string }>();
-  const authMode: EmailAuthMode = modeParam === 'sign-up' ? 'sign-up' : 'sign-in';
+  const authMode = parseAuthMode(modeParam);
   const c = colors;
 
   const scrollRef = useRef<ScrollView>(null);
-  const otpScrollY = useRef(0);
 
   const [token, setToken] = useState('');
   const [fieldError, setFieldError] = useState<string>();
@@ -44,40 +47,42 @@ export default function VerifyScreen() {
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { canResend, cooldownLabel, restart: restartResendCooldown } = useOtpResendCooldown();
 
   const busy = submitting || resending;
-  const heroHeight = keyboardOpen ? VERIFY_HERO_HEIGHT_KEYBOARD : VERIFY_HERO_HEIGHT;
+
+  const copy =
+    authMode === 'recovery'
+      ? {
+          title: 'Reset your password',
+          body: 'Enter the reset code we sent to ',
+          cta: 'Continue',
+        }
+      : {
+          title: 'Verify your email',
+          body: 'Enter the code we sent to ',
+          cta: 'Create account',
+        };
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showSub = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
-    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardOpen(true);
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOpen(false);
+      setKeyboardHeight(0);
+    });
 
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
-
-  function onFormLayout(event: LayoutChangeEvent) {
-    otpScrollY.current = Math.max(
-      0,
-      heroHeight + insets.top + spacing.lg + event.nativeEvent.layout.y - spacing.xl,
-    );
-  }
-
-  useEffect(() => {
-    if (keyboardOpen) {
-      requestAnimationFrame(() => scrollToOtp());
-    }
-  }, [keyboardOpen, heroHeight, insets.top]);
-
-  function scrollToOtp() {
-    scrollRef.current?.scrollTo({ y: otpScrollY.current, animated: true });
-  }
 
   async function onVerify() {
     setSubmitError(undefined);
@@ -90,6 +95,9 @@ export default function VerifyScreen() {
     setSubmitting(true);
     try {
       await verifyEmailOtp(email, parsed.data.token, authMode);
+      if (authMode === 'recovery') {
+        router.replace('/(auth)/reset-password');
+      }
     } catch {
       setSubmitError('That code is invalid or expired. Request a new one.');
       setSubmitting(false);
@@ -112,59 +120,59 @@ export default function VerifyScreen() {
     }
   }
 
+  const scrollBottomInset = keyboardOpen
+    ? keyboardHeight + spacing.lg
+    : insets.bottom + spacing.xxl;
+
   return (
     <Screen edgeToEdge>
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        hitSlop={12}
-        style={[styles.backLink, { top: insets.top + spacing.sm, left: spacing.lg }]}>
-        <Text style={[typography.captionMedium, { color: c.primaryText }]}>Back</Text>
-      </Pressable>
+      <View style={[styles.toolbar, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={8}
+          style={styles.backButton}>
+          <Text style={[typography.bodyMedium, { color: c.primary }]}>← Back</Text>
+        </Pressable>
+      </View>
 
       <KeyboardAvoidingView
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + BACK_BUTTON_HEIGHT : 0}>
         <ScrollView
           ref={scrollRef}
           style={styles.flex}
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingBottom: insets.bottom + spacing.xxl },
-          ]}
+          contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomInset }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}>
-          <HeroBanner
-            image={onboardingImages.screening}
-            compact
-            photoHeight={heroHeight}
-            topInset={insets.top}
-          />
+          {!keyboardOpen ? (
+            <HeroBanner
+              image={onboardingImages.screening}
+              compact
+              photoHeight={VERIFY_HERO_HEIGHT}
+              topInset={0}
+            />
+          ) : null}
 
           <View style={[styles.content, screenBodyPadding]}>
             <View style={styles.header}>
-              <Text style={[typography.h1, { color: c.text }]}>
-                {authMode === 'sign-up' ? 'Verify your email' : 'Check your inbox'}
-              </Text>
-              <Text style={[typography.body, styles.subtitle, { color: c.textMuted }]}>
-                {authMode === 'sign-up'
-                  ? 'Enter the code we sent to create your account: '
-                  : 'Enter the code we sent to sign in: '}
+              <Text style={[typography.h2, { color: c.text }]}>{copy.title}</Text>
+              <Text style={[typography.caption, styles.body, { color: c.textMuted }]}>
+                {copy.body}
                 <Text style={{ color: c.text }}>{email}</Text>.
               </Text>
             </View>
 
-            <View style={styles.form} onLayout={onFormLayout}>
+            <View style={styles.form}>
               <OtpCodeField
                 value={token}
                 onChangeText={setToken}
                 error={fieldError}
                 autoFocus
-                onFocus={scrollToOtp}
                 onSubmitEditing={onVerify}
               />
 
@@ -178,7 +186,7 @@ export default function VerifyScreen() {
               ) : null}
 
               <Button
-                label={authMode === 'sign-up' ? 'Create account' : 'Verify'}
+                label={copy.cta}
                 onPress={onVerify}
                 loading={submitting}
                 disabled={busy && !submitting}
@@ -217,26 +225,30 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
   },
-  backLink: {
-    position: 'absolute',
+  toolbar: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
+    backgroundColor: colors.background,
     zIndex: 2,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  backButton: {
+    minHeight: BACK_BUTTON_HEIGHT,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingRight: spacing.md,
   },
   content: {
-    gap: spacing.xl,
-    paddingTop: spacing.lg,
+    gap: spacing.md,
+    paddingTop: spacing.md,
   },
   header: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  subtitle: {
-    lineHeight: 22,
+  body: {
+    lineHeight: 18,
   },
   form: {
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   cooldown: {
     textAlign: 'center',

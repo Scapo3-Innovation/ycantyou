@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppDialogProvider } from '@/components/ui/AppDialogProvider';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
@@ -66,10 +67,12 @@ export default function RootLayout() {
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <RootNavigator />
-          <StatusBar style="auto" />
-        </AuthProvider>
+        <AppDialogProvider>
+          <AuthProvider>
+            <RootNavigator />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </AppDialogProvider>
       </SafeAreaProvider>
     </PersistQueryClientProvider>
   );

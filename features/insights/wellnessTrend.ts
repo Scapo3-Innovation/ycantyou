@@ -2,6 +2,41 @@ import { format, subDays } from 'date-fns';
 
 import type { DailyLog } from '@/types/database';
 
+export type DayWellnessDot = {
+  date: string;
+  label: string;
+  score: number | null;
+  mood: number | null;
+  hasLog: boolean;
+};
+
+/** Last 7 calendar days — for the analytics week strip. */
+export function computeLast7DayDots(logs: LogForWellness[]): DayWellnessDot[] {
+  const points: DayWellnessDot[] = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const day = subDays(new Date(), i);
+    const date = format(day, 'yyyy-MM-dd');
+    const log = logs.find((entry) => entry.log_date === date);
+    points.push({
+      date,
+      label: format(day, 'EEE'),
+      score: log ? dayScore(log) : null,
+      mood: log?.mood ?? null,
+      hasLog: Boolean(log),
+    });
+  }
+  return points;
+}
+
+/** Average wellness score for the current week (0–100), or null if no logs. */
+export function computeThisWeekScore(logs: LogForWellness[]): number | null {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const weekStart = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+  const weekLogs = logs.filter((entry) => entry.log_date >= weekStart && entry.log_date <= today);
+  const avg = averageScore(weekLogs);
+  return avg == null ? null : Math.round(avg);
+}
+
 export type WeekPoint = {
   label: string;
   score: number;

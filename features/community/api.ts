@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { isSchemaNotReadyError } from '@/lib/supabaseErrors';
+import { isSchemaNotReadyError, schemaNotReadyMessage } from '@/lib/supabaseErrors';
 import type { CommunityComment, CommunityPost } from '@/types/database';
 
 import { FEED_LIMIT } from './constants';
@@ -84,7 +84,12 @@ async function aggregatePostCounts(postIds: string[], userId: string): Promise<P
     .from('community_likes')
     .select('post_id, user_id')
     .in('post_id', postIds);
-  if (likeErr && !isSchemaNotReadyError(likeErr)) throw likeErr;
+  if (likeErr) {
+    if (isSchemaNotReadyError(likeErr)) {
+      return { likeCounts, dislikeCounts, likedByMe, dislikedByMe, commentCounts };
+    }
+    throw likeErr;
+  }
 
   for (const row of (likes ?? []) as { post_id: string; user_id: string }[]) {
     likeCounts.set(row.post_id, (likeCounts.get(row.post_id) ?? 0) + 1);
@@ -318,21 +323,40 @@ export async function softDeleteComment(commentId: string): Promise<void> {
 export async function toggleLike(
   userId: string,
   postId: string,
-  liked: boolean,
+  currentlyLiked: boolean,
 ): Promise<void> {
-  if (liked) {
+  if (!userId) throw new Error('Sign in to like posts');
+
+  if (currentlyLiked) {
     const { error } = await supabase
       .from('community_likes')
       .delete()
       .eq('post_id', postId)
       .eq('user_id', userId);
     if (error) throw error;
-  } else {
-    await clearDislike(userId, postId);
-    const { error } = await supabase
-      .from('community_likes')
-      .insert({ post_id: postId, user_id: userId });
-    if (error) throw error;
+    return;
+  }
+
+  const { error: dislikeError } = await supabase
+    .from('community_dislikes')
+    .delete()
+    .eq('post_id', postId)
+    .eq('user_id', userId);
+  if (dislikeError && !isSchemaNotReadyError(dislikeError)) {
+    throw dislikeError;
+  }
+
+  const { error } = await supabase
+    .from('community_likes')
+    .insert({ post_id: postId, user_id: userId });
+
+  if (error) {
+    // Already liked — treat as success (e.g. double tap or stale UI).
+    if (error.code === '23505') return;
+    if (isSchemaNotReadyError(error)) {
+      throw new Error(schemaNotReadyMessage('Likes'));
+    }
+    throw error;
   }
 }
 
@@ -340,21 +364,32 @@ export async function toggleLike(
 export async function toggleDislike(
   userId: string,
   postId: string,
-  disliked: boolean,
+  currentlyDisliked: boolean,
 ): Promise<void> {
-  if (disliked) {
+  if (!userId) throw new Error('Sign in to react to posts');
+
+  if (currentlyDisliked) {
     const { error } = await supabase
       .from('community_dislikes')
       .delete()
       .eq('post_id', postId)
       .eq('user_id', userId);
     if (error) throw error;
-  } else {
-    await clearLike(userId, postId);
-    const { error } = await supabase
-      .from('community_dislikes')
-      .insert({ post_id: postId, user_id: userId });
-    if (error) throw error;
+    return;
+  }
+
+  await clearLike(userId, postId);
+
+  const { error } = await supabase
+    .from('community_dislikes')
+    .insert({ post_id: postId, user_id: userId });
+
+  if (error) {
+    if (error.code === '23505') return;
+    if (isSchemaNotReadyError(error)) {
+      throw new Error(schemaNotReadyMessage('Reactions'));
+    }
+    throw error;
   }
 }
 

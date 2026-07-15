@@ -2,11 +2,17 @@ import {
   signInWithGoogleOAuth,
   type GoogleSignInResult,
 } from '@/features/auth/googleOAuth';
+import {
+  clearPendingSignUpPassword,
+  setPendingSignUpPassword,
+  signUpUsesEmailOtp,
+  takePendingSignUpPassword,
+} from '@/features/auth/pendingSignUp';
 import { clearWelcomeSeen } from '@/features/onboarding/welcomeStorage';
 import { supabase } from '@/lib/supabase';
 
-/** Email OTP flow — sign in to an existing account or create a new one. */
-export type EmailAuthMode = 'sign-in' | 'sign-up';
+/** Email OTP / recovery flow — sign-up confirmation or password reset. */
+export type EmailAuthMode = 'sign-up' | 'recovery';
 
 /**
  * Auth API — the single place that talks to Supabase Auth.
@@ -32,38 +38,136 @@ export async function sendEmailOtp(email: string, mode: EmailAuthMode = 'sign-up
   if (error) throw error;
 }
 
+/** Sign in with email and password. */
+export async function signInWithPassword(email: string, password: string): Promise<void> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
 /**
- * Create an account with email and password.
- * If email confirmation is enabled in Supabase, returns `verify` so the user can enter the OTP.
+ * Send a recovery code to reset a forgotten password.
+ * Supabase email template should use `{{ .Token }}` for a typed code.
+ */
+export async function sendPasswordRecoveryOtp(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) throw error;
+}
+
+function isAuthServerError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const status = 'status' in error && typeof error.status === 'number' ? error.status : 0;
+  const message = 'message' in error && typeof error.message === 'string' ? error.message : '';
+  return status >= 500 || message.includes('"status":500') || message.includes('/auth/v1/signup');
+}
+
+/**
+ * Start sign-up with email + password.
+ * Tries signUp first (Confirm signup email). On server 500, falls back to signInWithOtp (Magic Link email).
+ */
+export async function startSignUpWithPassword(email: string, password: string): Promise<void> {
+  clearPendingSignUpPassword();
+  const normalized = email.trim().toLowerCase();
+
+  const { data, error } = await supabase.auth.signUp({
+    email: normalized,
+    password,
+  });
+
+  if (error) {
+    if (isAuthServerError(error)) {
+      setPendingSignUpPassword(password);
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: normalized,
+        options: { shouldCreateUser: true },
+      });
+      if (otpError) {
+        clearPendingSignUpPassword();
+        throw otpError;
+      }
+      return;
+    }
+    throw error;
+  }
+
+  if (!data.user) {
+    throw new Error(
+      'Sign-up did not complete. This email may already be registered — try Sign in instead.',
+    );
+  }
+}
+
+/** Verify sign-up OTP — supports Confirm signup or Magic Link OTP fallback. */
+export async function completeSignUpVerification(email: string, token: string): Promise<void> {
+  const pendingPassword = takePendingSignUpPassword();
+
+  if (pendingPassword) {
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: 'email',
+    });
+    if (error) throw error;
+
+    const { error: passwordError } = await supabase.auth.updateUser({ password: pendingPassword });
+    if (passwordError) throw passwordError;
+    return;
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
+    email: email.trim().toLowerCase(),
+    token,
+    type: 'signup',
+  });
+  if (error) throw error;
+}
+
+/**
+ * @deprecated Use startSignUpWithPassword — kept as alias for compatibility.
  */
 export async function signUpWithPassword(
   email: string,
   password: string,
 ): Promise<'verify' | 'signed-in'> {
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-  return data.session ? 'signed-in' : 'verify';
+  await startSignUpWithPassword(email, password);
+  return 'verify';
 }
 
 /** Verify the 6-digit email OTP. On success, supabase-js persists the session and emits an auth event. */
 export async function verifyEmailOtp(
   email: string,
   token: string,
-  mode: EmailAuthMode = 'sign-in',
+  mode: EmailAuthMode = 'sign-up',
 ): Promise<void> {
-  const type = mode === 'sign-up' ? 'signup' : 'email';
-  const { error } = await supabase.auth.verifyOtp({ email, token, type });
+  if (mode === 'sign-up') {
+    await completeSignUpVerification(email, token);
+    return;
+  }
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
   if (error) throw error;
 }
 
-/** Resend a sign-in OTP or sign-up confirmation code. */
+/** Set a new password after recovery OTP verification. */
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
+/** Resend a sign-up confirmation or password-recovery code. */
 export async function resendEmailOtp(email: string, mode: EmailAuthMode): Promise<void> {
+  if (mode === 'recovery') {
+    await sendPasswordRecoveryOtp(email);
+    return;
+  }
   if (mode === 'sign-up') {
+    if (signUpUsesEmailOtp()) {
+      await sendEmailOtp(email, 'sign-up');
+      return;
+    }
     const { error } = await supabase.auth.resend({ type: 'signup', email });
     if (error) throw error;
     return;
   }
-  await sendEmailOtp(email, 'sign-in');
+  await sendEmailOtp(email, 'sign-up');
 }
 
 /**
@@ -116,6 +220,7 @@ export async function verifyEmailUpgrade(email: string, token: string): Promise<
 
 /** Sign the current user out. Root navigator sends you back to the welcome intro. */
 export async function signOut(): Promise<void> {
+  clearPendingSignUpPassword();
   await clearWelcomeSeen();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;

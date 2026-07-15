@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,19 +13,23 @@ import {
 } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Screen } from '@/components/ui/Screen';
 import { IncognitoToggle } from '@/features/community/components/IncognitoToggle';
 import { COMMUNITY_DISCLAIMER, TOPIC_TAGS } from '@/features/community/constants';
 import { useCreatePost } from '@/features/community/mutations';
-import { parseTags, postSchema } from '@/features/community/validation';
+import { postSchema } from '@/features/community/validation';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { profileFirstName } from '@/features/profile/firstName';
 import { useProfile } from '@/features/profile/useProfile';
 import { analytics } from '@/lib/analytics';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, floatingTabBarScrollInset, radius, spacing, typography } from '@/theme';
+
+const HEADER_SIDE_WIDTH = 76;
 
 export default function NewPostScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const create = useCreatePost();
   const { session } = useAuth();
   const { data: profile } = useProfile(session?.user.id);
@@ -76,7 +80,7 @@ export default function NewPostScreen() {
     }
 
     if (!isAnonymous) {
-      Alert.alert(
+      alert(
         'Post with your first name?',
         'Other members will see your first name on this post.',
         [
@@ -93,28 +97,47 @@ export default function NewPostScreen() {
   const canPost = body.trim().length > 0 && !create.isPending;
 
   return (
-    <Screen edgeToEdge>
+    <Screen style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
-            <Text style={[typography.body, { color: colors.text }]}>Cancel</Text>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+            style={({ pressed }) => [styles.headerSide, pressed && styles.pressed]}>
+            <Text style={[typography.bodyMedium, styles.cancelLabel]}>Cancel</Text>
           </Pressable>
-          <Text style={[typography.bodyMedium, { color: colors.text }]}>New post</Text>
+
+          <Text style={[typography.bodyMedium, styles.headerTitle]} numberOfLines={1}>
+            New post
+          </Text>
+
           <Pressable
             onPress={onSubmit}
             disabled={!canPost}
             accessibilityRole="button"
             accessibilityLabel="Post"
-            style={[styles.postBtn, !canPost && styles.postBtnDisabled]}>
-            <Text
-              style={[
-                typography.bodyMedium,
-                { color: canPost ? colors.primaryText : colors.textFaint },
-              ]}>
-              Post
-            </Text>
+            accessibilityState={{ disabled: !canPost, busy: create.isPending }}
+            style={({ pressed }) => [
+              styles.headerSide,
+              styles.postBtn,
+              canPost ? styles.postBtnActive : styles.postBtnDisabled,
+              pressed && canPost && styles.pressed,
+            ]}>
+            {create.isPending ? (
+              <ActivityIndicator size="small" color={colors.primaryText} />
+            ) : (
+              <Text
+                style={[
+                  typography.button,
+                  { color: canPost ? colors.primaryText : colors.textMuted },
+                ]}>
+                Post
+              </Text>
+            )}
           </Pressable>
         </View>
 
@@ -122,39 +145,51 @@ export default function NewPostScreen() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={styles.composeRow}>
+          <View style={styles.identityRow}>
             <View style={[styles.avatar, { backgroundColor: colors.roseTint }]}>
               <Text style={[typography.bodyMedium, { color: colors.primary }]}>{userInitial}</Text>
             </View>
-            <View style={styles.composeCol}>
+            <View style={styles.identityToggle}>
               <IncognitoToggle value={isAnonymous} onChange={onIncognitoChange} />
-              <TextInput
-                value={body}
-                onChangeText={setBody}
-                placeholder="What's happening?"
-                placeholderTextColor={colors.textFaint}
-                multiline
-                autoFocus
-                style={[styles.composeInput, { color: colors.text }]}
-                textAlignVertical="top"
-              />
             </View>
           </View>
 
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            placeholder="What's happening?"
+            placeholderTextColor={colors.textFaint}
+            multiline
+            autoFocus
+            style={[typography.body, styles.composeInput, { color: colors.text }]}
+            textAlignVertical="top"
+          />
+
           <View style={styles.topics}>
-            {TOPIC_TAGS.map((tag) => (
-              <Chip
-                key={tag}
-                label={`#${tag}`}
-                selected={selectedTopics.includes(tag)}
-                onPress={() => toggleTopic(tag)}
-              />
-            ))}
+            <Text style={[typography.captionMedium, styles.topicsLabel, { color: colors.textMuted }]}>
+              Add a topic
+            </Text>
+            <View style={styles.topicRow}>
+              {TOPIC_TAGS.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={`#${tag}`}
+                  selected={selectedTopics.includes(tag)}
+                  onPress={() => toggleTopic(tag)}
+                />
+              ))}
+            </View>
           </View>
 
-          {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
+          {error ? (
+            <Text style={[typography.caption, { color: colors.danger }]} accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          ) : null}
 
-          <Text style={[typography.caption, { color: colors.textFaint }]}>{COMMUNITY_DISCLAIMER}</Text>
+          <Text style={[typography.caption, styles.disclaimer, { color: colors.textFaint }]}>
+            {COMMUNITY_DISCLAIMER}
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
@@ -162,36 +197,57 @@ export default function NewPostScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    paddingHorizontal: 0,
+    backgroundColor: colors.surface,
+  },
   flex: {
     flex: 1,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  headerSide: {
+    width: HEADER_SIDE_WIDTH,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.text,
+  },
+  cancelLabel: {
+    color: colors.primary,
   },
   postBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
     borderRadius: radius.full,
-    minWidth: 64,
-    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  postBtnActive: {
+    backgroundColor: colors.primary,
   },
   postBtnDisabled: {
     backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   scroll: {
-    padding: spacing.lg,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: floatingTabBarScrollInset + spacing.lg,
+    gap: spacing.md,
   },
-  composeRow: {
+  identityRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.md,
   },
   avatar: {
@@ -200,21 +256,32 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  composeCol: {
+  identityToggle: {
     flex: 1,
-    gap: spacing.sm,
+    minWidth: 0,
   },
   composeInput: {
-    fontSize: 20,
-    lineHeight: 28,
-    minHeight: 120,
+    minHeight: 140,
     padding: 0,
-    fontFamily: typography.body.fontFamily,
+    lineHeight: 22,
   },
   topics: {
+    gap: spacing.sm,
+  },
+  topicsLabel: {
+    paddingHorizontal: spacing.xs,
+  },
+  topicRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  disclaimer: {
+    lineHeight: 18,
+  },
+  pressed: {
+    opacity: 0.88,
   },
 });

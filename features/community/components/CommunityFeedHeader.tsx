@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { FeedFilter } from '@/features/community/constants';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -11,14 +11,19 @@ type CommunityFeedHeaderProps = {
   onSearchChange: (query: string) => void;
   userInitial: string;
   onAvatarPress: () => void;
-  onBookmarksPress: () => void;
-  onNotificationsPress: () => void;
+  savedOnly: boolean;
+  onToggleSaved: () => void;
 };
 
-const FILTERS: { id: FeedFilter; label: string }[] = [
-  { id: 'popular', label: 'Popular' },
-  { id: 'mine', label: 'My posts' },
-  { id: 'following', label: 'Following' },
+const FILTERS: {
+  id: FeedFilter;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  activeIcon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { id: 'popular', label: 'Popular', icon: 'trending-up-outline', activeIcon: 'trending-up' },
+  { id: 'mine', label: 'Mine', icon: 'person-outline', activeIcon: 'person' },
+  { id: 'following', label: 'Following', icon: 'people-outline', activeIcon: 'people' },
 ];
 
 export function CommunityFeedHeader({
@@ -28,8 +33,8 @@ export function CommunityFeedHeader({
   onSearchChange,
   userInitial,
   onAvatarPress,
-  onBookmarksPress,
-  onNotificationsPress,
+  savedOnly,
+  onToggleSaved,
 }: CommunityFeedHeaderProps) {
   return (
     <View style={styles.wrap}>
@@ -58,31 +63,23 @@ export function CommunityFeedHeader({
           />
         </View>
 
-        <View style={styles.iconRow}>
-          <Pressable
-            onPress={onBookmarksPress}
-            accessibilityRole="button"
-            accessibilityLabel="Saved posts"
-            hitSlop={8}
-            style={styles.iconBtn}>
-            <Ionicons name="bookmark-outline" size={22} color={colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={onNotificationsPress}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            hitSlop={8}
-            style={styles.iconBtn}>
-            <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={onToggleSaved}
+          accessibilityRole="button"
+          accessibilityLabel={savedOnly ? 'Show all posts' : 'Show saved posts'}
+          accessibilityState={{ selected: savedOnly }}
+          hitSlop={8}
+          style={[styles.savedBtn, savedOnly && styles.savedBtnActive]}>
+          <Ionicons
+            name={savedOnly ? 'bookmark' : 'bookmark-outline'}
+            size={20}
+            color={savedOnly ? colors.primary : colors.textMuted}
+          />
+        </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}>
-        {FILTERS.map(({ id, label }) => {
+      <View style={styles.filterRow} accessibilityRole="tablist">
+        {FILTERS.map(({ id, label, icon, activeIcon }) => {
           const selected = filter === id;
           return (
             <Pressable
@@ -90,21 +87,28 @@ export function CommunityFeedHeader({
               onPress={() => onFilterChange(id)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              style={[
-                styles.filterPill,
-                selected ? styles.filterPillActive : styles.filterPillIdle,
+              style={({ pressed }) => [
+                styles.filterChip,
+                selected ? styles.filterChipActive : styles.filterChipIdle,
+                pressed && styles.filterChipPressed,
               ]}>
+              <Ionicons
+                name={selected ? activeIcon : icon}
+                size={13}
+                color={selected ? colors.primaryText : colors.textMuted}
+              />
               <Text
                 style={[
-                  typography.captionMedium,
+                  styles.filterLabel,
                   { color: selected ? colors.primaryText : colors.textMuted },
-                ]}>
+                ]}
+                numberOfLines={1}>
                 {label}
               </Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -112,8 +116,8 @@ export function CommunityFeedHeader({
 const styles = StyleSheet.create({
   wrap: {
     backgroundColor: colors.surface,
+    gap: spacing.sm,
     paddingBottom: spacing.sm,
-    gap: spacing.md,
   },
   topBar: {
     flexDirection: 'row',
@@ -161,28 +165,50 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     fontSize: 15,
   },
-  iconRow: {
+  savedBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+  },
+  savedBtnActive: {
+    backgroundColor: colors.roseTint,
+  },
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    flexShrink: 0,
-  },
-  iconBtn: {
-    padding: spacing.xs,
-  },
-  filters: {
     paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
   },
-  filterPill: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+  filterChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 7,
     borderRadius: radius.full,
+    minHeight: 32,
   },
-  filterPillActive: {
-    backgroundColor: colors.primary,
-  },
-  filterPillIdle: {
+  filterChipIdle: {
     backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.primary,
+  },
+  filterChipPressed: {
+    opacity: 0.88,
+  },
+  filterLabel: {
+    ...typography.captionMedium,
+    fontSize: 11,
+    lineHeight: 14,
   },
 });

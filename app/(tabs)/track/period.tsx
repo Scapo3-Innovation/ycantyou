@@ -1,10 +1,11 @@
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState, useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader, HeaderIconButton } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
@@ -43,6 +44,7 @@ const periodCalendarTheme = {
 
 export default function PeriodScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const params = useLocalSearchParams<{ id?: string }>();
   const c = colors;
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -174,7 +176,7 @@ export default function PeriodScreen() {
 
   function onDelete() {
     if (!editing) return;
-    Alert.alert('Delete period', 'Delete this logged period?', [
+    alert('Delete period', 'Delete this logged period?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

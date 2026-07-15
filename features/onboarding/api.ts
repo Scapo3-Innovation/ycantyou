@@ -12,7 +12,7 @@ export type OnboardingBasics = {
 };
 
 export type CompletePrimaryOnboardingInput = OnboardingBasics & {
-  goal: Goal;
+  goal: Goal | null;
 };
 
 export type CompletePartnerOnboardingInput = OnboardingBasics & {

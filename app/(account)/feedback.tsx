@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { submitUserFeedback } from '@/features/feedback/api';
@@ -38,6 +38,7 @@ function parseInitialKind(value: string | undefined): FeedbackKind {
 export default function FeedbackScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { alert } = useAppDialog();
   const userId = session?.user.id;
   const { kind: kindParam } = useLocalSearchParams<{ kind?: string }>();
 
@@ -52,14 +53,12 @@ export default function FeedbackScreen() {
     },
     onSuccess: () => {
       analytics.track('user_feedback_submitted', { kind });
-      Alert.alert('Thank you', FEEDBACK_SUCCESS[kind], [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      alert('Thank you', FEEDBACK_SUCCESS[kind], [{ text: 'OK', onPress: () => router.back() }]);
     },
     onError: (err: unknown) => {
       const text =
         err instanceof Error ? err.message : 'Could not send right now. Please try again.';
-      Alert.alert('Could not send', text);
+      alert('Could not send', text);
     },
   });
 

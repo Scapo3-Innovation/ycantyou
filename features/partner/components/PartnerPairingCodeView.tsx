@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { HeroBanner } from '@/components/ui/HeroBanner';
 import { partnerAssets } from '@/features/partner/assets';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -26,9 +27,10 @@ export function PartnerPairingCodeView({
   cancelPending = false,
 }: PartnerPairingCodeViewProps) {
   const insets = useSafeAreaInsets();
+  const { alert } = useAppDialog();
 
   function confirmCancel() {
-    Alert.alert(
+    alert(
       'Cancel invite?',
       'Your partner will no longer be able to use this code. You can generate a new one anytime.',
       [

@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   Share,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Card } from '@/components/ui/Card';
 import { Screen, screenBodyPadding } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -29,6 +29,7 @@ import { colors, floatingTabBarScrollInset, spacing, typography } from '@/theme'
 
 export default function PartnerScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const { session } = useAuth();
   const userId = session?.user.id;
   const { data: hub, isLoading, error, refetch } = usePartnerHub();
@@ -75,7 +76,7 @@ export default function PartnerScreen() {
   }
 
   function onRevoke() {
-    Alert.alert(
+    alert(
       'Revoke partner access?',
       'They will immediately lose access to shared cycle insights.',
       [

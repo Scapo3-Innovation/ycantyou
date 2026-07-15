@@ -18,36 +18,35 @@ import { Divider } from '@/components/ui/Divider';
 import { GoogleSignInButton } from '@/components/ui/GoogleSignInButton';
 import { GuestSignInButton } from '@/components/ui/GuestSignInButton';
 import { HeroBanner } from '@/components/ui/HeroBanner';
+import { PasswordRequirements } from '@/components/ui/PasswordRequirements';
 import { Screen, screenBodyPadding } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import {
-  sendEmailOtp,
   signInAsGuest,
   signInWithGoogle,
-  signUpWithPassword,
-  type EmailAuthMode,
+  signInWithPassword,
+  startSignUpWithPassword,
 } from '@/features/auth/api';
 import {
   getOAuthRedirectUri,
   isSupabaseRedirectConfigError,
+  logOAuthRedirectSetup,
+  requiresTunnelForExpoGo,
 } from '@/features/auth/oauthRedirect';
-import { emailSchema, signUpSchema } from '@/features/auth/validation';
+import { mapSignInError, mapSignUpError } from '@/features/auth/authErrors';
+import { signInSchema, signUpSchema } from '@/features/auth/validation';
+import { isPasswordValid } from '@/features/auth/passwordRules';
 import { onboardingImages } from '@/features/onboarding/images';
 import { colors, typography } from '@/theme';
 import { radius, spacing } from '@/theme/spacing';
 
 const SHOW_GUEST_SIGN_IN = __DEV__;
-/** Temporarily off until Supabase Google OAuth redirect is configured (tunnel/dev build). */
-const SHOW_GOOGLE_SIGN_IN = false;
+const SHOW_GOOGLE_SIGN_IN = true;
 const SHOW_CREATE_ACCOUNT = true;
-const AUTH_HERO_HEIGHT = 240;
-const AUTH_HERO_HEIGHT_KEYBOARD = 96;
+const AUTH_HERO_HEIGHT = 200;
+const AUTH_HERO_HEIGHT_KEYBOARD = 80;
 
-function isUnknownAccountError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const message = 'message' in error && typeof error.message === 'string' ? error.message : '';
-  return /user not found|signups not allowed|invalid login credentials/i.test(message);
-}
+type ScreenAuthMode = 'sign-in' | 'sign-up';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -57,7 +56,7 @@ export default function SignInScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const emailScrollY = useRef(0);
 
-  const [authMode, setAuthMode] = useState<EmailAuthMode>('sign-in');
+  const [authMode, setAuthMode] = useState<ScreenAuthMode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string>();
@@ -70,6 +69,7 @@ export default function SignInScreen() {
 
   const busy = submitting || googleLoading || guestLoading;
   const isSignUp = SHOW_CREATE_ACCOUNT && authMode === 'sign-up';
+  const passwordReady = isPasswordValid(password);
   const heroHeight = keyboardOpen ? AUTH_HERO_HEIGHT_KEYBOARD : AUTH_HERO_HEIGHT;
 
   const copy = useMemo(
@@ -77,20 +77,26 @@ export default function SignInScreen() {
       isSignUp
         ? {
             title: 'Create account',
-            subtitle: 'Enter your email and password. We’ll send a code to verify your email.',
+            subtitle: 'Email, password, then a quick code',
             cta: 'Create account',
             switchPrompt: 'Already have an account?',
             switchAction: 'Sign in here',
           }
         : {
             title: 'Sign in',
-            subtitle: 'Enter your email — we’ll send you a 6-digit code.',
-            cta: 'Send code',
+            subtitle: 'Email and password',
+            cta: 'Sign in',
             switchPrompt: 'Don’t have an account?',
             switchAction: 'Create one here',
           },
     [isSignUp],
   );
+
+  useEffect(() => {
+    if (__DEV__ && SHOW_GOOGLE_SIGN_IN) {
+      logOAuthRedirectSetup(getOAuthRedirectUri());
+    }
+  }, []);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -139,7 +145,11 @@ export default function SignInScreen() {
       if (result === 'cancelled') return;
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
-      if (isSupabaseRedirectConfigError(message) || message.includes('redirect URL')) {
+      if (requiresTunnelForExpoGo()) {
+        setSubmitError(
+          'Google sign-in needs Expo tunnel mode. Run: npx expo start --tunnel --clear, add the https URL to Supabase Redirect URLs, set EXPO_PUBLIC_OAUTH_REDIRECT_URI in .env, then restart.',
+        );
+      } else if (isSupabaseRedirectConfigError(message) || message.includes('redirect URL')) {
         setSubmitError(
           `Supabase redirect not configured. Add this URL in Supabase → Auth → URL Configuration → Redirect URLs: ${getOAuthRedirectUri()}`,
         );
@@ -190,47 +200,36 @@ export default function SignInScreen() {
 
       setSubmitting(true);
       try {
-        const result = await signUpWithPassword(parsed.data.email, parsed.data.password);
-        if (result === 'verify') {
-          router.push({
-            pathname: '/(auth)/verify',
-            params: { email: parsed.data.email, mode: 'sign-up' },
-          });
-        }
+        await startSignUpWithPassword(parsed.data.email, parsed.data.password);
+        router.push({
+          pathname: '/(auth)/verify',
+          params: { email: parsed.data.email, mode: 'sign-up' },
+        });
       } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        if (/already registered|already exists|user already/i.test(message)) {
-          setSubmitError('This email already has an account. Sign in instead.');
-        } else if (/password/i.test(message)) {
-          setPasswordError('Choose a stronger password (at least 8 characters).');
-        } else {
-          setSubmitError('Could not create your account. Check your connection and try again.');
-        }
+        setSubmitError(mapSignUpError(error));
       } finally {
         setSubmitting(false);
       }
       return;
     }
 
-    const parsed = emailSchema.safeParse({ email });
+    const parsed = signInSchema.safeParse({ email, password });
     if (!parsed.success) {
-      setEmailError(parsed.error.issues[0]?.message);
+      for (const issue of parsed.error.issues) {
+        if (issue.path[0] === 'password') {
+          setPasswordError(issue.message);
+        } else {
+          setEmailError(issue.message);
+        }
+      }
       return;
     }
 
     setSubmitting(true);
     try {
-      await sendEmailOtp(parsed.data.email, 'sign-in');
-      router.push({
-        pathname: '/(auth)/verify',
-        params: { email: parsed.data.email, mode: 'sign-in' },
-      });
+      await signInWithPassword(parsed.data.email, parsed.data.password);
     } catch (error) {
-      if (isUnknownAccountError(error)) {
-        setSubmitError('No account found for this email. Create one below.');
-      } else {
-        setSubmitError('Could not send the code. Check your connection and try again.');
-      }
+      setSubmitError(mapSignInError(error));
     } finally {
       setSubmitting(false);
     }
@@ -271,14 +270,12 @@ export default function SignInScreen() {
 
           <View style={[styles.content, screenBodyPadding]}>
             <View style={styles.header}>
-              <Text style={[typography.h1, { color: c.text }]}>{copy.title}</Text>
-              <Text style={[typography.body, styles.subtitle, { color: c.textMuted }]}>
-                {copy.subtitle}
-              </Text>
+              <Text style={[typography.h2, { color: c.text }]}>{copy.title}</Text>
+              <Text style={[typography.caption, { color: c.textMuted }]}>{copy.subtitle}</Text>
             </View>
 
             <View style={styles.form}>
-              <View style={styles.emailSection} onLayout={onEmailSectionLayout}>
+              <View style={styles.fields} onLayout={onEmailSectionLayout}>
                 <TextField
                   label="Email"
                   value={email}
@@ -290,26 +287,51 @@ export default function SignInScreen() {
                   inputMode="email"
                   autoCorrect={false}
                   placeholder="you@example.com"
-                  returnKeyType={isSignUp ? 'next' : 'send'}
+                  returnKeyType="next"
                   onFocus={scrollToEmail}
-                  onSubmitEditing={isSignUp ? undefined : onSubmit}
                 />
 
-                {isSignUp ? (
-                  <TextField
-                    label="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    error={passwordError}
-                    autoCapitalize="none"
-                    autoComplete="new-password"
-                    secureTextEntry
-                    textContentType="newPassword"
-                    placeholder="At least 8 characters"
-                    returnKeyType="send"
-                    onFocus={scrollToEmail}
-                    onSubmitEditing={onSubmit}
-                  />
+                <TextField
+                  label="Password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setPasswordError(undefined);
+                  }}
+                  error={passwordError}
+                  autoCapitalize="none"
+                  autoComplete={isSignUp ? 'new-password' : 'password'}
+                  secureTextEntry
+                  textContentType={isSignUp ? 'newPassword' : 'password'}
+                  placeholder={isSignUp ? 'Letters and numbers' : 'Your password'}
+                  returnKeyType="send"
+                  onFocus={scrollToEmail}
+                  onSubmitEditing={onSubmit}
+                />
+
+                {isSignUp ? <PasswordRequirements password={password} /> : null}
+
+                {SHOW_CREATE_ACCOUNT && !isSignUp ? (
+                  <View style={styles.auxRow}>
+                    <Pressable
+                      onPress={() => router.push('/(auth)/forgot-password')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Forgot password"
+                      hitSlop={8}>
+                      <Text style={[typography.caption, { color: c.primary }]}>
+                        Forgot password?
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={switchAuthMode}
+                      accessibilityRole="button"
+                      accessibilityLabel="Create a new account"
+                      hitSlop={8}>
+                      <Text style={[typography.captionMedium, { color: c.primary }]}>
+                        Create account
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : null}
 
                 {submitError ? (
@@ -320,20 +342,20 @@ export default function SignInScreen() {
                   label={copy.cta}
                   onPress={onSubmit}
                   loading={submitting}
-                  disabled={busy && !submitting}
+                  disabled={(busy && !submitting) || (isSignUp && !passwordReady) || (!isSignUp && !password)}
                 />
 
-                {SHOW_CREATE_ACCOUNT ? (
+                {SHOW_CREATE_ACCOUNT && isSignUp ? (
                   <Pressable
                     onPress={switchAuthMode}
                     accessibilityRole="button"
-                    accessibilityLabel={`${copy.switchPrompt} ${copy.switchAction}`}
+                    accessibilityLabel="Sign in to an existing account"
                     hitSlop={8}
                     style={styles.switchRow}>
                     <Text style={[typography.caption, { color: c.textMuted }]}>
-                      {copy.switchPrompt}{' '}
+                      Already have an account?{' '}
                       <Text style={[typography.captionMedium, { color: c.primary }]}>
-                        {copy.switchAction}
+                        Sign in here
                       </Text>
                     </Text>
                   </Pressable>
@@ -341,7 +363,7 @@ export default function SignInScreen() {
               </View>
 
               {!keyboardOpen && (SHOW_GOOGLE_SIGN_IN || SHOW_GUEST_SIGN_IN) ? (
-                <>
+                <View style={styles.altSection}>
                   <View style={styles.orRow}>
                     <Divider style={styles.orLine} />
                     <Text style={[typography.caption, { color: c.textFaint }]}>or</Text>
@@ -359,14 +381,14 @@ export default function SignInScreen() {
                     ) : null}
                     {SHOW_GUEST_SIGN_IN ? (
                       <GuestSignInButton
-                        variant="full"
+                        variant="icon"
                         onPress={onContinueAsGuest}
                         loading={guestLoading}
                         disabled={busy && !guestLoading}
                       />
                     ) : null}
                   </View>
-                </>
+                </View>
               ) : null}
             </View>
           </View>
@@ -392,31 +414,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   content: {
-    gap: spacing.xl,
-    paddingTop: spacing.lg,
+    gap: spacing.md,
+    paddingTop: spacing.md,
   },
   header: {
-    gap: spacing.sm,
-  },
-  subtitle: {
-    lineHeight: 22,
+    gap: spacing.xs,
   },
   form: {
-    gap: spacing.lg,
+    gap: spacing.md,
   },
-  emailSection: {
-    gap: spacing.lg,
+  fields: {
+    gap: spacing.md,
   },
   switchRow: {
     alignSelf: 'center',
-    paddingVertical: spacing.xs,
+    paddingTop: spacing.xs,
+  },
+  auxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  altSection: {
+    gap: spacing.md,
+    paddingTop: spacing.xs,
   },
   socialRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.lg,
-    alignSelf: 'stretch',
   },
   orRow: {
     flexDirection: 'row',

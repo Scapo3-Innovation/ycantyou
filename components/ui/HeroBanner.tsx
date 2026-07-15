@@ -19,6 +19,8 @@ type HeroBannerProps = {
   icon?: keyof typeof Ionicons.glyphMap;
   /** Space below title/subtitle inside the hero. */
   copyBottomInset?: number;
+  /** Extend title block below the hero into the content area. */
+  copyOverlap?: number;
 };
 
 /** Full-bleed photo header with gradient fade into the screen background. */
@@ -31,13 +33,19 @@ export function HeroBanner({
   topInset = 0,
   icon,
   copyBottomInset,
+  copyOverlap,
 }: HeroBannerProps) {
   const resolvedPhotoHeight = photoHeight ?? (compact ? 268 : 320);
   const showCopy = Boolean(title || subtitle || icon);
+  const copyOverlaps = copyOverlap != null && copyOverlap > 0;
 
   return (
     <View
-      style={[styles.wrap, { height: resolvedPhotoHeight + topInset, paddingTop: topInset }]}>
+      style={[
+        styles.wrap,
+        copyOverlaps && styles.wrapOverlap,
+        { height: resolvedPhotoHeight + topInset, paddingTop: topInset },
+      ]}>
       <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
       <LinearGradient
         colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.35)', colors.background]}
@@ -46,7 +54,14 @@ export function HeroBanner({
       />
       {showCopy ? (
         <View
-          style={[styles.copy, { paddingBottom: copyBottomInset ?? spacing.md }]}>
+          style={[
+            styles.copy,
+            copyOverlaps && styles.copyOverlap,
+            {
+              paddingBottom: copyBottomInset ?? spacing.md,
+              bottom: copyOverlaps ? -copyOverlap : undefined,
+            },
+          ]}>
           {icon ? (
             <View style={styles.iconBadge}>
               <Ionicons name={icon} size={22} color={colors.primary} />
@@ -65,11 +80,19 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
   },
+  wrapOverlap: {
+    overflow: 'visible',
+  },
   copy: {
     flex: 1,
     justifyContent: 'flex-end',
     paddingHorizontal: spacing.xl,
     gap: spacing.xs,
+  },
+  copyOverlap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   iconBadge: {
     width: 44,

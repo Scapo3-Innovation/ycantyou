@@ -1,29 +1,35 @@
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { PremiumListItem } from '@/components/ui/PremiumListItem';
-import { PremiumSection } from '@/components/ui/PremiumSection';
 import { Screen } from '@/components/ui/Screen';
 import { signOut } from '@/features/auth/api';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { ProfileForm } from '@/features/profile/ProfileForm';
 import { ProfileGuestBanner } from '@/features/profile/components/ProfileGuestBanner';
 import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
-import { ProfileInsightsSection } from '@/features/profile/components/ProfileInsightsSection';
+import { ProfileHeroCard } from '@/features/profile/components/ProfileHeroCard';
+import { ProfileToolsSection } from '@/features/profile/components/ProfileToolsSection';
 import { useProfile } from '@/features/profile/useProfile';
+import { PremiumSubscriptionSheet } from '@/features/subscription/components/PremiumSubscriptionSheet';
+import { ProfileSubscriptionSection } from '@/features/subscription/components/ProfileSubscriptionSection';
 import { fullScreenScrollContent, spacing } from '@/theme';
 
 export default function ProfileScreen() {
   const { session, isGuest } = useAuth();
   const router = useRouter();
+  const { alert } = useAppDialog();
   const userId = session?.user.id;
+  const email = session?.user.email;
+  const [premiumOpen, setPremiumOpen] = useState(false);
 
   const { data: profile, isLoading } = useProfile(userId);
 
   function onLogout() {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
+    alert('Log out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log out', style: 'destructive', onPress: () => void signOut() },
     ]);
@@ -42,30 +48,35 @@ export default function ProfileScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ProfileHeader
+        <ProfileHeader onBack={onBack} />
+
+        <ProfileHeroCard
           fullName={profile.full_name}
-          onSettings={() => router.push('/(account)/settings')}
-          onBack={onBack}
+          email={email}
+          isGuest={isGuest}
+          avatarUrl={profile.avatar_url}
         />
 
         {isGuest ? (
           <ProfileGuestBanner onUpgrade={() => router.push('/(account)/upgrade')} />
         ) : null}
 
+        <ProfileToolsSection
+          onOpenAnalytics={() => router.push('/(tabs)/analytics')}
+          onOpenFeedback={() => router.push('/(account)/feedback')}
+          onOpenSettings={() => router.push('/(account)/settings')}
+        />
+
+        <ProfileSubscriptionSection onExplorePremium={() => setPremiumOpen(true)} />
+
         <ProfileForm key={userId} userId={userId} profile={profile} />
 
-        <ProfileInsightsSection onOpenAnalytics={() => router.push('/(tabs)/analytics')} />
-
-        <PremiumSection label="Account">
-          <PremiumListItem
-            title="Settings & privacy"
-            subtitle="Notifications, export, legal, and feedback"
-            leftIcon="shield-checkmark-outline"
-            onPress={() => router.push('/(account)/settings')}
-          />
+        <View style={styles.logout}>
           <Button label="Log out" variant="secondary" onPress={onLogout} />
-        </PremiumSection>
+        </View>
       </ScrollView>
+
+      <PremiumSubscriptionSheet visible={premiumOpen} onClose={() => setPremiumOpen(false)} />
     </Screen>
   );
 }
@@ -74,5 +85,8 @@ const styles = StyleSheet.create({
   scroll: {
     ...fullScreenScrollContent,
     gap: spacing.xl,
+  },
+  logout: {
+    paddingTop: spacing.xs,
   },
 });

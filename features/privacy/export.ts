@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
+import { Platform } from 'react-native';
 
 import { shareLocalFile } from '@/lib/shareLocalFile';
 import { supabase } from '@/lib/supabase';
@@ -168,10 +169,14 @@ export async function exportAsPdf(bundle: ExportBundle): Promise<boolean> {
       <p class="muted">This is your own data, held privately. We never sell it.</p>
     </body></html>`;
 
-  const { uri } = await Print.printToFileAsync({ html });
+  const { uri, base64 } = await Print.printToFileAsync({
+    html,
+    base64: Platform.OS === 'android',
+  });
   return shareLocalFile(uri, {
     mimeType: 'application/pdf',
     dialogTitle: 'Your data summary',
     UTI: 'com.adobe.pdf',
+    ...(Platform.OS === 'android' && base64 ? { base64 } : {}),
   });
 }

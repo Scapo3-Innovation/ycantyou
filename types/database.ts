@@ -17,6 +17,8 @@ export type Profile = {
   sex_assigned_at_birth: SexAtBirth | null;
   language: string;
   goal: Goal | null;
+  avatar_id: string | null;
+  avatar_url: string | null;
   account_mode?: AccountMode;
   onboarding_status: OnboardingStatus;
   created_at: string;
@@ -29,7 +31,9 @@ export type ProfileUpdate = {
   full_name: string;
   dob: string;
   sex_assigned_at_birth: SexAtBirth;
-  goal: Goal;
+  goal: Goal | null;
+  avatar_id?: string | null;
+  avatar_url?: string | null;
 };
 
 /** A row in public.consents (versioned, for DPDP). */

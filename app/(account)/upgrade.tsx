@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Card } from '@/components/ui/Card';
 import { FormSection } from '@/components/ui/FormSection';
 import { OtpCodeField } from '@/components/ui/OtpCodeField';
@@ -24,6 +24,7 @@ type Step = 'email' | 'code';
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const c = colors;
 
   const [step, setStep] = useState<Step>('email');
@@ -64,8 +65,9 @@ export default function UpgradeScreen() {
     setSubmitting(true);
     try {
       await verifyEmailUpgrade(email, parsed.data.token);
-      Alert.alert('Account linked', 'Your email is now linked. You can sign in with it next time.');
-      router.back();
+      alert('Account linked', 'Your email is now linked. You can sign in with it next time.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     } catch {
       setSubmitError('That code is invalid or expired. Request a new one.');
       setSubmitting(false);

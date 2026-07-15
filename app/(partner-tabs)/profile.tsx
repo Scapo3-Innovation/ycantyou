@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { Card } from '@/components/ui/Card';
 import { Screen, screenBodyPadding } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -15,6 +16,7 @@ import * as Linking from 'expo-linking';
 
 export default function PartnerProfileScreen() {
   const router = useRouter();
+  const { alert } = useAppDialog();
   const { session } = useAuth();
   const userId = session?.user.id;
   const { data: profile } = useProfile(userId);
@@ -22,7 +24,7 @@ export default function PartnerProfileScreen() {
   const disconnect = useDisconnectAsPartner(userId);
 
   function onDisconnect() {
-    Alert.alert(
+    alert(
       'Disconnect?',
       'You will lose access to shared cycle insights. You can join again with a new code.',
       [

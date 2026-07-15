@@ -18,6 +18,7 @@ export function useFeed() {
     queryKey: communityKeys.feed(userId),
     queryFn: () => fetchFeed(userId as string),
     enabled: Boolean(userId),
+    staleTime: 0,
     retry: (failureCount, error) => {
       if (isSchemaNotReadyError(error)) return false;
       return failureCount < 2;

@@ -12,9 +12,11 @@ import { RangeBar } from './RangeBar';
 export function CycleLengthCard({
   stats,
   compact = false,
+  embedded = false,
 }: {
   stats: CycleLengthStats | undefined;
   compact?: boolean;
+  embedded?: boolean;
 }) {
   const c = colors;
 
@@ -26,9 +28,11 @@ export function CycleLengthCard({
     stats.max_length != null &&
     stats.spread != null;
 
+  const headlineStyle = compact || embedded ? typography.bodyMedium : typography.h1;
+
   if (!enough) {
     return (
-      <InsightCard title="Cycle length" compact={compact}>
+      <InsightCard title="Cycle length" compact={compact} embedded={embedded}>
         <InsightEmptyState message="Log at least two periods and we’ll show your cycle-length trend." />
       </InsightCard>
     );
@@ -37,9 +41,9 @@ export function CycleLengthCard({
   const regular = stats.spread! <= IRREGULAR_SPREAD_DAYS;
 
   return (
-    <InsightCard title="Cycle length" compact={compact}>
+    <InsightCard title="Cycle length" compact={compact} embedded={embedded}>
       <View style={styles.headerRow}>
-        <Text style={[compact ? typography.bodyMedium : typography.h1, { color: c.text }]}>
+        <Text style={[headlineStyle, { color: c.text }]}>
           {stats.avg_length} days
         </Text>
         <View style={[styles.badge, { backgroundColor: regular ? c.success : c.warning }]}>

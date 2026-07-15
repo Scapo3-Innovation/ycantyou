@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ProfileAvatar } from '@/features/profile/components/ProfileAvatar';
 import { colors, radius, spacing, typography } from '@/theme';
 
 import { TourAnchor } from '@/features/tour/TourAnchor';
@@ -12,11 +13,18 @@ type HomeTopBarProps = {
   today: string;
   selectedDate: string;
   userName?: string | null;
+  avatarUrl?: string | null;
   onGoToToday: () => void;
 };
 
 /** Profile · greeting · calendar shortcut. */
-export function HomeTopBar({ today, selectedDate, userName, onGoToToday }: HomeTopBarProps) {
+export function HomeTopBar({
+  today,
+  selectedDate,
+  userName,
+  avatarUrl,
+  onGoToToday,
+}: HomeTopBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const name = firstName(userName);
@@ -32,11 +40,7 @@ export function HomeTopBar({ today, selectedDate, userName, onGoToToday }: HomeT
           accessibilityLabel="Open profile"
           hitSlop={8}
           style={styles.iconBtn}>
-          <View style={styles.avatar}>
-            <Text style={[typography.captionMedium, { color: colors.primary }]}>
-              {name ? name.charAt(0).toUpperCase() : 'Y'}
-            </Text>
-          </View>
+          <ProfileAvatar avatarUrl={avatarUrl} size={36} />
         </Pressable>
       </TourAnchor>
 
@@ -80,14 +84,6 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },

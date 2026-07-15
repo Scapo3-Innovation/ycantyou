@@ -2,8 +2,17 @@ import { StyleSheet } from 'react-native';
 
 import { spacing } from './spacing';
 
+/** Standard height for buttons, inputs, and tappable rows. */
+export const controlHeight = 46;
+
+/** Square icon / avatar tap target in headers. */
+export const iconButtonSize = 36;
+
+/** Minimum height for list rows inside cards. */
+export const listRowMinHeight = 44;
+
 /** Height of the floating pill tab bar (excluding safe-area inset). */
-export const FLOATING_TAB_BAR_HEIGHT = 67;
+export const FLOATING_TAB_BAR_HEIGHT = 63;
 
 /** Bottom inset for scroll content when the floating pill tab bar is visible. */
 export const floatingTabBarScrollInset = FLOATING_TAB_BAR_HEIGHT + spacing.xxl;

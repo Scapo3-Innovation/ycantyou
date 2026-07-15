@@ -136,9 +136,9 @@ export function buildReportHtml({ result, cycles, dailyLogs }: ReportInput): str
 export async function generateAndShareReport(input: ReportInput): Promise<boolean> {
   const html = buildReportHtml(input);
 
-  const { uri } = await Print.printToFileAsync({
+  const { uri, base64 } = await Print.printToFileAsync({
     html,
-    base64: false,
+    base64: Platform.OS === 'android',
   });
 
   if (!uri) {
@@ -148,6 +148,7 @@ export async function generateAndShareReport(input: ReportInput): Promise<boolea
   const shared = await shareLocalFile(uri, {
     mimeType: 'application/pdf',
     dialogTitle: 'PCOS screening summary',
+    ...(Platform.OS === 'android' && base64 ? { base64 } : {}),
     ...(Platform.OS === 'ios' ? { UTI: 'com.adobe.pdf' } : {}),
   });
   if (!shared) return false;

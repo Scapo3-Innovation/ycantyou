@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,15 +11,27 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useCommunityFeedback } from '@/features/community/CommunityFeedbackContext';
 import { CommentItem } from '@/features/community/components/CommentItem';
 import { IncognitoToggle } from '@/features/community/components/IncognitoToggle';
+import {
+  CommunityModerationSheet,
+  type ModerationMenuTarget,
+} from '@/features/community/components/CommunityModerationSheet';
 import { PostCard } from '@/features/community/components/PostCard';
 import { COMMUNITY_DISCLAIMER } from '@/features/community/constants';
-import { presentModerationMenu, presentReportReasons } from '@/features/community/moderation';
+import {
+  authorIdFromTarget,
+  authorLabelFromTarget,
+  moderationTargetFromComment,
+  moderationTargetFromPost,
+} from '@/features/community/moderation';
 import {
   useAddComment,
   useBlockUser,
@@ -34,10 +45,11 @@ import {
 import { usePostDetail } from '@/features/community/queries';
 import type { FeedPost, PostComment } from '@/features/community/types';
 import { commentSchema } from '@/features/community/validation';
-import { colors, spacing, typography } from '@/theme';
+import { colors, FLOATING_TAB_BAR_HEIGHT, radius, spacing, typography } from '@/theme';
 
 export default function PostDetailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const postId = id ?? '';
 
@@ -50,58 +62,74 @@ export default function PostDetailScreen() {
   const deletePost = useDeletePost();
   const deleteComment = useDeleteComment(postId);
   const addComment = useAddComment(postId);
+  const { showToast, showFollowToast } = useCommunityFeedback();
 
   const [comment, setComment] = useState('');
   const [commentAnonymous, setCommentAnonymous] = useState(true);
+  const [followedIds, setFollowedIds] = useState<Set<string>>(() => new Set());
+  const [menuTarget, setMenuTarget] = useState<ModerationMenuTarget | null>(null);
 
-  function onPostMenu(post: FeedPost) {
-    presentModerationMenu({
-      isOwn: post.isOwn,
-      onReport: () =>
-        presentReportReasons((reason) =>
-          report.mutate(
-            { target: { postId: post.id }, reason },
-            { onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this.') },
-          ),
-        ),
-      onBlock: () =>
-        Alert.alert('Block author', 'Their posts and comments will be hidden from you.', [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Block',
-            style: 'destructive',
-            onPress: () => block.mutate(post.user_id, { onSuccess: () => router.back() }),
-          },
-        ]),
-      onDelete: () =>
-        Alert.alert('Delete post', 'This removes your post for everyone.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deletePost.mutate(post.id, { onSuccess: () => router.back() }) },
-        ]),
+  const composerBottomPad =
+    Math.max(insets.bottom, spacing.sm) + FLOATING_TAB_BAR_HEIGHT + spacing.sm;
+
+  function toggleFollow(authorId: string) {
+    setFollowedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(authorId)) next.delete(authorId);
+      else next.add(authorId);
+      return next;
     });
   }
 
+  function onPostMenu(post: FeedPost) {
+    setMenuTarget(moderationTargetFromPost(post));
+  }
+
   function onCommentMenu(c: PostComment) {
-    presentModerationMenu({
-      isOwn: c.isOwn,
-      onReport: () =>
-        presentReportReasons((reason) =>
-          report.mutate(
-            { target: { commentId: c.id }, reason },
-            { onSuccess: () => Alert.alert('Reported', 'Thanks — our team will review this.') },
-          ),
-        ),
-      onBlock: () =>
-        Alert.alert('Block author', 'Their posts and comments will be hidden from you.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Block', style: 'destructive', onPress: () => block.mutate(c.user_id) },
-        ]),
-      onDelete: () =>
-        Alert.alert('Delete comment', 'This removes your comment.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deleteComment.mutate(c.id) },
-        ]),
+    setMenuTarget(moderationTargetFromComment(c));
+  }
+
+  function onModerationReport(reason: string) {
+    if (!menuTarget) return;
+    const target =
+      menuTarget.type === 'post'
+        ? { postId: menuTarget.post.id }
+        : { commentId: menuTarget.comment.id };
+    report.mutate(
+      { target, reason },
+      {
+        onSuccess: () =>
+          showToast({
+            message: 'Report submitted',
+            subtitle: 'Thanks — our team will review it',
+            icon: 'flag',
+            tone: 'success',
+          }),
+      },
+    );
+  }
+
+  function onModerationBlock() {
+    if (!menuTarget) return;
+    block.mutate(authorIdFromTarget(menuTarget), {
+      onSuccess: () => {
+        showToast({
+          message: 'Author blocked',
+          subtitle: 'Their posts are hidden from you',
+          icon: 'ban-outline',
+        });
+        if (menuTarget.type === 'post') router.back();
+      },
     });
+  }
+
+  function onModerationDelete() {
+    if (!menuTarget) return;
+    if (menuTarget.type === 'post') {
+      deletePost.mutate(menuTarget.post.id, { onSuccess: () => router.back() });
+      return;
+    }
+    deleteComment.mutate(menuTarget.comment.id);
   }
 
   function onSend() {
@@ -117,14 +145,8 @@ export default function PostDetailScreen() {
 
   if (!data) {
     return (
-      <Screen edgeToEdge>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={[typography.bodyMedium, { color: colors.text }]}>Post</Text>
-          <View style={styles.topSide} />
-        </View>
+      <Screen style={styles.screen}>
+        <ScreenHeader title="Post" onBack={() => router.back()} />
         <EmptyState icon="chatbubble-outline" title="Post not found" message="It may have been removed." />
       </Screen>
     );
@@ -134,20 +156,18 @@ export default function PostDetailScreen() {
   const canReply = comment.trim().length > 0 && !addComment.isPending;
 
   return (
-    <Screen edgeToEdge>
+    <Screen style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={styles.flex}>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
-          </Pressable>
-          <Text style={[typography.bodyMedium, { color: colors.text }]}>Post</Text>
-          <View style={styles.topSide} />
+        <View style={styles.headerWrap}>
+          <ScreenHeader title="Post" onBack={() => router.back()} />
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <PostCard
@@ -161,26 +181,26 @@ export default function PostDetailScreen() {
             onMenu={() => onPostMenu(post)}
           />
 
-          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.sectionDivider} />
 
           <View style={styles.repliesHeader}>
-            <Text style={[typography.bodyMedium, { color: colors.text }]}>
-              Replies
-            </Text>
+            <Text style={[typography.bodyMedium, { color: colors.text }]}>Replies</Text>
             {post.commentCount > 0 ? (
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {post.commentCount}
-              </Text>
+              <View style={styles.countPill}>
+                <Text style={[typography.captionMedium, { color: colors.primary }]}>
+                  {post.commentCount}
+                </Text>
+              </View>
             ) : null}
           </View>
 
           {comments.length === 0 ? (
-            <Text style={[typography.body, styles.emptyReplies, { color: colors.textMuted }]}>
+            <Text style={[typography.caption, styles.emptyReplies, { color: colors.textMuted }]}>
               No replies yet. Be supportive — not medical advice.
             </Text>
           ) : (
             <View style={styles.replies}>
-              {comments.map((c) => (
+              {comments.map((c, index) => (
                 <View key={c.id}>
                   <CommentItem
                     comment={c}
@@ -189,7 +209,7 @@ export default function PostDetailScreen() {
                       commentLike.mutate({ commentId: c.id, liked: c.likedByMe })
                     }
                   />
-                  <View style={[styles.replyDivider, { backgroundColor: colors.border }]} />
+                  {index < comments.length - 1 ? <View style={styles.replyDivider} /> : null}
                 </View>
               ))}
             </View>
@@ -200,12 +220,14 @@ export default function PostDetailScreen() {
           </Text>
         </ScrollView>
 
-        <View
-          style={[
-            styles.composer,
-            { borderTopColor: colors.border, backgroundColor: colors.background },
-          ]}>
-          <IncognitoToggle value={commentAnonymous} onChange={setCommentAnonymous} />
+        <View style={[styles.composer, { paddingBottom: composerBottomPad }]}>
+          <View style={styles.composerTop}>
+            <IncognitoToggle
+              value={commentAnonymous}
+              onChange={setCommentAnonymous}
+              compact
+            />
+          </View>
           <View style={styles.composerRow}>
             <TextInput
               value={comment}
@@ -213,81 +235,126 @@ export default function PostDetailScreen() {
               placeholder="Post your reply"
               placeholderTextColor={colors.textFaint}
               multiline
-              style={[styles.replyInput, { color: colors.text }]}
+              style={[typography.body, styles.replyInput, { color: colors.text }]}
             />
             <Pressable
               onPress={onSend}
               disabled={!canReply}
               accessibilityRole="button"
               accessibilityLabel="Reply"
-              style={[styles.replyBtn, !canReply && styles.replyBtnDisabled]}>
-              <Text
-                style={[
-                  typography.bodyMedium,
-                  { color: canReply ? colors.primary : colors.textFaint },
-                ]}>
-                Reply
-              </Text>
+              style={({ pressed }) => [
+                styles.replyBtn,
+                canReply ? styles.replyBtnActive : styles.replyBtnDisabled,
+                pressed && canReply && styles.pressed,
+              ]}>
+              {addComment.isPending ? (
+                <ActivityIndicator size="small" color={colors.primaryText} />
+              ) : (
+                <Text
+                  style={[
+                    typography.button,
+                    { color: canReply ? colors.primaryText : colors.textMuted },
+                  ]}>
+                  Reply
+                </Text>
+              )}
             </Pressable>
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <CommunityModerationSheet
+        target={menuTarget}
+        isFollowing={menuTarget ? followedIds.has(authorIdFromTarget(menuTarget)) : false}
+        onClose={() => setMenuTarget(null)}
+        onFollow={() => {
+          if (!menuTarget) return;
+          toggleFollow(authorIdFromTarget(menuTarget));
+          showFollowToast(authorLabelFromTarget(menuTarget), true);
+        }}
+        onUnfollow={() => {
+          if (!menuTarget) return;
+          toggleFollow(authorIdFromTarget(menuTarget));
+          showFollowToast(authorLabelFromTarget(menuTarget), false);
+        }}
+        onReport={onModerationReport}
+        onBlock={onModerationBlock}
+        onDelete={onModerationDelete}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    paddingHorizontal: 0,
+    backgroundColor: colors.surface,
+  },
   flex: {
     flex: 1,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  headerWrap: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  topSide: {
-    width: 22,
-  },
   scroll: {
-    paddingBottom: spacing.xl,
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: spacing.md,
   },
   sectionDivider: {
-    height: StyleSheet.hairlineWidth * 4,
+    height: spacing.sm,
     backgroundColor: colors.surfaceAlt,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   repliesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  countPill: {
+    backgroundColor: colors.roseTint,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    minWidth: 24,
+    alignItems: 'center',
   },
   emptyReplies: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
   },
   replies: {
     paddingHorizontal: spacing.lg,
   },
   replyDivider: {
     height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
     marginLeft: 40,
   },
   disclaimer: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
+    lineHeight: 18,
   },
   composer: {
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  composerTop: {
+    flexDirection: 'row',
   },
   composerRow: {
     flexDirection: 'row',
@@ -296,17 +363,33 @@ const styles = StyleSheet.create({
   },
   replyInput: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
-    maxHeight: 100,
+    minHeight: 40,
+    maxHeight: 96,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    fontFamily: typography.body.fontFamily,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    lineHeight: 20,
   },
   replyBtn: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    minWidth: 68,
+    minHeight: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  replyBtnActive: {
+    backgroundColor: colors.primary,
   },
   replyBtnDisabled: {
-    opacity: 0.5,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pressed: {
+    opacity: 0.88,
   },
 });

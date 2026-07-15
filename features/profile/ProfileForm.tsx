@@ -3,13 +3,9 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { PremiumSection } from '@/components/ui/PremiumSection';
-import { SexAtBirthField } from '@/components/ui/SexAtBirthField';
 import { GOAL_FOCUS_FOOTNOTE } from '@/features/onboarding/constants';
 import { profileDetailsSchema } from '@/features/onboarding/validation';
-import { ProfileGoalsSection } from '@/features/profile/components/ProfileGoalsSection';
-import { ProfilePersonalDetailsSection } from '@/features/profile/components/ProfilePersonalDetailsSection';
+import { ProfileDetailsCard } from '@/features/profile/components/ProfileDetailsCard';
 import { updateProfile } from '@/features/profile/api';
 import { profileQueryKey } from '@/features/profile/useProfile';
 import { colors, spacing, typography } from '@/theme';
@@ -19,11 +15,12 @@ type FieldErrors = Partial<
   Record<'full_name' | 'dob' | 'sex_assigned_at_birth' | 'goal', string>
 >;
 
-/** Editable profile — premium grouped sections. */
+/** Profile details — read-only by default; edit mode shows fields and save. */
 export function ProfileForm({ userId, profile }: { userId: string; profile: Profile }) {
   const queryClient = useQueryClient();
   const c = colors;
 
+  const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(profile.full_name ?? '');
   const [dob, setDob] = useState(profile.dob ?? '');
   const [sexAtBirth, setSexAtBirth] = useState<SexAtBirth | null>(profile.sex_assigned_at_birth);
@@ -36,8 +33,28 @@ export function ProfileForm({ userId, profile }: { userId: string; profile: Prof
     onSuccess: (updated: Profile) => {
       queryClient.setQueryData(profileQueryKey(userId), updated);
       setSaved(true);
+      setIsEditing(false);
     },
   });
+
+  function resetFields() {
+    setFullName(profile.full_name ?? '');
+    setDob(profile.dob ?? '');
+    setSexAtBirth(profile.sex_assigned_at_birth);
+    setGoal(profile.goal);
+    setErrors({});
+    setSaved(false);
+  }
+
+  function onEdit() {
+    resetFields();
+    setIsEditing(true);
+  }
+
+  function onCancel() {
+    resetFields();
+    setIsEditing(false);
+  }
 
   function onSave() {
     setSaved(false);
@@ -62,60 +79,51 @@ export function ProfileForm({ userId, profile }: { userId: string; profile: Prof
 
   return (
     <View style={styles.wrap}>
-      <ProfilePersonalDetailsSection
+      <ProfileDetailsCard
+        editing={isEditing}
+        onEdit={onEdit}
         fullName={fullName}
         dob={dob}
+        sexAtBirth={sexAtBirth}
+        goal={goal}
         onChangeName={setFullName}
         onChangeDob={setDob}
-        nameError={errors.full_name}
-        dobError={errors.dob}
+        onChangeSex={setSexAtBirth}
+        onChangeGoal={setGoal}
+        errors={errors}
       />
 
-      <PremiumSection label="About you">
-        <Card style={styles.sexCard}>
-          <SexAtBirthField
-            label="Sex"
-            value={sexAtBirth}
-            onChange={setSexAtBirth}
-            error={errors.sex_assigned_at_birth}
-            accent="secondary"
-            size="compact"
-          />
-        </Card>
-      </PremiumSection>
+      {isEditing ? (
+        <>
+          <Text style={[typography.caption, styles.goalFootnote, { color: c.textFaint }]}>
+            {GOAL_FOCUS_FOOTNOTE}
+          </Text>
 
-      <ProfileGoalsSection value={goal} onChange={setGoal} error={errors.goal} />
+          {mutation.isError ? (
+            <Text style={[typography.caption, { color: c.danger }]}>
+              Could not save changes. Please try again.
+            </Text>
+          ) : null}
+          {saved ? (
+            <Text style={[typography.caption, { color: c.success }]}>Saved.</Text>
+          ) : null}
 
-      <Text style={[typography.caption, styles.goalFootnote, { color: c.textFaint }]}>
-        {GOAL_FOCUS_FOOTNOTE}
-      </Text>
-
-      {mutation.isError ? (
-        <Text style={[typography.caption, { color: c.danger }]}>
-          Could not save changes. Please try again.
-        </Text>
+          <Button label="Save changes" onPress={onSave} loading={mutation.isPending} />
+          <Button label="Cancel" variant="secondary" onPress={onCancel} disabled={mutation.isPending} />
+        </>
       ) : null}
-      {saved ? (
-        <Text style={[typography.caption, { color: c.success }]}>Saved.</Text>
-      ) : null}
-
-      <Button label="Save changes" onPress={onSave} loading={mutation.isPending} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: spacing.xl,
-  },
-  sexCard: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   goalFootnote: {
-    marginTop: -spacing.md,
     fontStyle: 'italic',
     lineHeight: 18,
     paddingHorizontal: spacing.xs,
+    marginTop: -spacing.xs,
   },
 });

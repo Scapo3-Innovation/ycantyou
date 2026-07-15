@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Card } from '@/components/ui/Card';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, typography } from '@/theme';
 
 type PremiumListItemProps = {
   title: string;
@@ -27,7 +27,7 @@ export function PremiumListItem({
     <View style={styles.row}>
       {leftIcon ? (
         <View style={styles.iconTile}>
-          <Ionicons name={leftIcon} size={18} color={colors.text} />
+          <Ionicons name={leftIcon} size={COMPACT.iconGlyph} color={colors.text} />
         </View>
       ) : null}
       <View style={styles.copy}>
@@ -40,7 +40,7 @@ export function PremiumListItem({
       </View>
       {right ??
         (onPress ? (
-          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          <Ionicons name="chevron-forward" size={COMPACT.chevron} color={colors.textFaint} />
         ) : null)}
     </View>
   );
@@ -61,6 +61,16 @@ export function PremiumListItem({
   );
 }
 
+const COMPACT = {
+  rowMinHeight: 61,
+  padH: 15,
+  padV: 11,
+  gap: 11,
+  icon: 34,
+  iconGlyph: 17,
+  chevron: 15,
+} as const;
+
 const styles = StyleSheet.create({
   card: {
     padding: 0,
@@ -70,14 +80,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    minHeight: 64,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    gap: COMPACT.gap,
+    minHeight: COMPACT.rowMinHeight,
+    paddingHorizontal: COMPACT.padH,
+    paddingVertical: COMPACT.padV,
   },
   iconTile: {
-    width: 36,
-    height: 36,
+    width: COMPACT.icon,
+    height: COMPACT.icon,
     borderRadius: radius.sm,
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',

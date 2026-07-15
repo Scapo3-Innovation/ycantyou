@@ -70,8 +70,10 @@ export function useToggleLike() {
   const feedKey = communityKeys.feed(userId);
 
   return useMutation({
-    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) =>
-      toggleLike(userId as string, postId, liked),
+    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) => {
+      if (!userId) throw new Error('Sign in to like posts');
+      return toggleLike(userId, postId, liked);
+    },
     onMutate: async ({ postId, liked }) => {
       const postKey = communityKeys.post(postId, userId);
       await qc.cancelQueries({ queryKey: feedKey });
@@ -105,10 +107,6 @@ export function useToggleLike() {
       if (ctx?.prevFeed) qc.setQueryData(feedKey, ctx.prevFeed);
       if (ctx?.prevPost && ctx.postKey) qc.setQueryData(ctx.postKey, ctx.prevPost);
     },
-    onSettled: (_d, _e, { postId }) => {
-      void qc.invalidateQueries({ queryKey: feedKey });
-      void qc.invalidateQueries({ queryKey: communityKeys.post(postId, userId) });
-    },
   });
 }
 
@@ -120,8 +118,10 @@ export function useToggleDislike() {
   const feedKey = communityKeys.feed(userId);
 
   return useMutation({
-    mutationFn: ({ postId, disliked }: { postId: string; disliked: boolean }) =>
-      toggleDislike(userId as string, postId, disliked),
+    mutationFn: ({ postId, disliked }: { postId: string; disliked: boolean }) => {
+      if (!userId) throw new Error('Sign in to react to posts');
+      return toggleDislike(userId, postId, disliked);
+    },
     onMutate: async ({ postId, disliked }) => {
       const postKey = communityKeys.post(postId, userId);
       await qc.cancelQueries({ queryKey: feedKey });
@@ -152,10 +152,6 @@ export function useToggleDislike() {
       if (ctx?.prevFeed) qc.setQueryData(feedKey, ctx.prevFeed);
       if (ctx?.prevPost && ctx.postKey) qc.setQueryData(ctx.postKey, ctx.prevPost);
     },
-    onSettled: (_d, _e, { postId }) => {
-      void qc.invalidateQueries({ queryKey: feedKey });
-      void qc.invalidateQueries({ queryKey: communityKeys.post(postId, userId) });
-    },
   });
 }
 
@@ -167,8 +163,10 @@ export function useToggleCommentLike(postId: string) {
   const postKey = communityKeys.post(postId, userId);
 
   return useMutation({
-    mutationFn: ({ commentId, liked }: { commentId: string; liked: boolean }) =>
-      toggleCommentLike(userId as string, commentId, liked),
+    mutationFn: ({ commentId, liked }: { commentId: string; liked: boolean }) => {
+      if (!userId) throw new Error('Sign in to like comments');
+      return toggleCommentLike(userId, commentId, liked);
+    },
     onMutate: async ({ commentId, liked }) => {
       await qc.cancelQueries({ queryKey: postKey });
       const prev = qc.getQueryData<PostDetail>(postKey);
@@ -191,9 +189,6 @@ export function useToggleCommentLike(postId: string) {
     },
     onError: (_e, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(postKey, ctx.prev);
-    },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: postKey });
     },
   });
 }

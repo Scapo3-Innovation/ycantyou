@@ -45,6 +45,13 @@
         {
           "experimentalLauncherActivity": false
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ycantyou to access your photos to set a profile picture.",
+          "cameraPermission": "Allow ycantyou to use the camera for your profile photo."
+        }
       ]
     ],
     "experiments": {

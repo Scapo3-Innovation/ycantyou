@@ -34,6 +34,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   stack: {
-    gap: spacing.sm,
+    gap: 7,
   },
 });

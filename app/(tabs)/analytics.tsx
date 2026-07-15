@@ -4,9 +4,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { PremiumListItem } from '@/components/ui/PremiumListItem';
-import { PremiumSection } from '@/components/ui/PremiumSection';
 import { Screen } from '@/components/ui/Screen';
 import {
   computeTrendPoints,
@@ -15,11 +14,14 @@ import {
 } from '@/features/insights/analyticsSeries';
 import { AnalyticsHeroStrip } from '@/features/insights/components/analytics/AnalyticsHeroStrip';
 import { AnalyticsInsightBanner } from '@/features/insights/components/analytics/AnalyticsInsightBanner';
+import { AnalyticsWeekDots } from '@/features/insights/components/analytics/AnalyticsWeekDots';
+import { AnalyticsWellnessScoreCard } from '@/features/insights/components/analytics/AnalyticsWellnessScoreCard';
 import {
   AnalyticsMetricTabs,
   type AnalyticsMetric,
 } from '@/features/insights/components/analytics/AnalyticsMetricTabs';
 import { AnalyticsPeriodTabs } from '@/features/insights/components/analytics/AnalyticsPeriodTabs';
+import { AnalyticsTopBar } from '@/features/insights/components/analytics/AnalyticsTopBar';
 import { analyticsTypography } from '@/features/insights/components/analytics/analyticsStyles';
 import { InteractiveTrendChart } from '@/features/insights/components/analytics/InteractiveTrendChart';
 import {
@@ -33,15 +35,20 @@ import { SymptomPatternCard } from '@/features/insights/components/SymptomPatter
 import { comparePcosTrend, computePcosTrendPoints } from '@/features/insights/pcosTrend';
 import { useCycleLengthStats, useSymptomPhasePatterns } from '@/features/insights/queries';
 import { selectSymptomInsights } from '@/features/insights/select';
-import { compareWellnessWeeks } from '@/features/insights/wellnessTrend';
+import { compareWellnessWeeks, computeLast7DayDots } from '@/features/insights/wellnessTrend';
+import { useProfile } from '@/features/profile/useProfile';
 import { useScreenerHistory } from '@/features/screener/queries';
 import { TourAnchor } from '@/features/tour/TourAnchor';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { computeCyclePrediction } from '@/features/tracking/prediction';
 import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
-import { colors, radius, screenScrollContent, spacing } from '@/theme';
+import { colors, radius, screenScrollContent, spacing, typography } from '@/theme';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const { data: profile } = useProfile(userId);
   const today = format(new Date(), 'yyyy-MM-dd');
   const [period, setPeriod] = useState<AnalyticsPeriod>('4w');
   const [metric, setMetric] = useState<AnalyticsMetric>('signs');
@@ -74,6 +81,8 @@ export default function AnalyticsScreen() {
     const weekStart = format(subDays(new Date(), 6), 'yyyy-MM-dd');
     return dailyLogs.filter((log) => log.log_date >= weekStart).length;
   }, [dailyLogs]);
+
+  const weekDots = useMemo(() => computeLast7DayDots(dailyLogs), [dailyLogs]);
 
   const selectedPoint = selectedIndex == null ? null : (trendPoints[selectedIndex] ?? null);
   const selectedPcosPoint =
@@ -109,12 +118,7 @@ export default function AnalyticsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={[analyticsTypography.title, { color: colors.text }]}>Analytics</Text>
-          <Text style={[analyticsTypography.micro, { color: colors.textFaint }]}>
-            From your logs only — not a diagnosis
-          </Text>
-        </View>
+        <AnalyticsTopBar userName={profile?.full_name} avatarUrl={profile?.avatar_url} />
 
         <AnalyticsHeroStrip
           cycles={cycles}
@@ -123,79 +127,97 @@ export default function AnalyticsScreen() {
           logsThisWeek={logsThisWeek}
         />
 
-        <PremiumSection label="Trends">
+        <AnalyticsWellnessScoreCard dailyLogs={dailyLogs} />
+
+        <AnalyticsWeekDots days={weekDots} today={today} />
+
+        <View style={styles.section}>
+          <Text style={[typography.captionMedium, styles.sectionLabel, { color: colors.textMuted }]}>
+            Trends
+          </Text>
           <TourAnchor id="tour-analytics-trends">
-            <View style={[styles.trendsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Card style={styles.trendsCard}>
               <AnalyticsPeriodTabs value={period} onChange={setPeriod} />
               <AnalyticsMetricTabs value={metric} onChange={setMetric} />
 
-            <Text style={[analyticsTypography.micro, { color: colors.textFaint }]}>
-              {periodLabel(period)}
-              {metric === 'signs' ? ' · stress, flow & screener' : ' · mood & energy'}
-            </Text>
-
-            {metric === 'signs' ? (
-              <>
-                <PcosChangeChart
-                  points={pcosPoints}
-                  selectedIndex={pcosSelectedIndex}
-                  onSelectIndex={setPcosSelectedIndex}
-                />
-                <PcosChangeDetail point={selectedPcosPoint} />
-                <AnalyticsInsightBanner
-                  headline={pcosComparison.headline}
-                  subline={pcosComparison.subline}
-                />
-                <Pressable
-                  onPress={() => router.push('/(screener)/intro')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Take PCOS screener"
-                  style={({ pressed }) => [styles.inlineLink, pressed && styles.pressed]}>
-                  <Text style={[analyticsTypography.bodyMedium, { color: colors.secondary }]}>
-                    Take PCOS screener
-                  </Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.secondary} />
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <InteractiveTrendChart
-                  points={trendPoints}
-                  selectedIndex={selectedIndex}
-                  onSelectIndex={setSelectedIndex}
-                />
-                <TrendDetailPanel point={selectedPoint} />
-                <AnalyticsInsightBanner
-                  headline={wellnessComparison.headline}
-                  highlight={showDeltaHighlight ? deltaLabel : undefined}
-                  subline={wellnessComparison.subline}
-                />
-              </>
-            )}
-
-            {!hasChartSelection ? (
-              <Text style={[analyticsTypography.micro, styles.chartHint, { color: colors.textFaint }]}>
-                Tap a bar to inspect that period
+              <Text style={[analyticsTypography.micro, { color: colors.textFaint }]}>
+                {periodLabel(period)}
+                {metric === 'signs' ? ' · stress, flow & screener' : ' · mood & energy'}
               </Text>
-            ) : null}
-            </View>
+
+              {metric === 'signs' ? (
+                <>
+                  <PcosChangeChart
+                    points={pcosPoints}
+                    selectedIndex={pcosSelectedIndex}
+                    onSelectIndex={setPcosSelectedIndex}
+                  />
+                  <PcosChangeDetail point={selectedPcosPoint} />
+                  <AnalyticsInsightBanner
+                    headline={pcosComparison.headline}
+                    subline={pcosComparison.subline}
+                  />
+                  <Pressable
+                    onPress={() => router.push('/(screener)/intro')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Take PCOS screener"
+                    style={({ pressed }) => [styles.inlineLink, pressed && styles.pressed]}>
+                    <Text style={[typography.captionMedium, { color: colors.secondary }]}>
+                      Take PCOS screener
+                    </Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.secondary} />
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <InteractiveTrendChart
+                    points={trendPoints}
+                    selectedIndex={selectedIndex}
+                    onSelectIndex={setSelectedIndex}
+                  />
+                  <TrendDetailPanel point={selectedPoint} />
+                  <AnalyticsInsightBanner
+                    headline={wellnessComparison.headline}
+                    highlight={showDeltaHighlight ? deltaLabel : undefined}
+                    subline={wellnessComparison.subline}
+                  />
+                </>
+              )}
+
+              {!hasChartSelection ? (
+                <Text style={[analyticsTypography.micro, styles.chartHint, { color: colors.textFaint }]}>
+                  Tap a bar to inspect that period
+                </Text>
+              ) : null}
+            </Card>
           </TourAnchor>
-        </PremiumSection>
+        </View>
 
-        <PremiumSection label="More insights">
-          <View style={styles.moreCards}>
-            <CycleLengthCard stats={cycleStats} compact />
-            <SymptomPatternCard insights={symptomInsights} compact />
-            <RecentActivity logs={dailyLogs} compact />
-          </View>
-        </PremiumSection>
-
-        <PremiumListItem
-          title="Calendar & logs"
-          subtitle="Open tracking to add or edit entries"
-          leftIcon="calendar-outline"
-          onPress={() => router.push('/(tabs)/track')}
-        />
+        <View style={styles.section}>
+          <Text style={[typography.captionMedium, styles.sectionLabel, { color: colors.textMuted }]}>
+            Your data
+          </Text>
+          <CycleLengthCard stats={cycleStats} />
+          <SymptomPatternCard insights={symptomInsights} />
+          <RecentActivity logs={dailyLogs} />
+          <Card style={styles.trackCard}>
+            <Pressable
+              onPress={() => router.push('/(tabs)/track')}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.trackRow, pressed && styles.pressed]}>
+              <View style={styles.trackIcon}>
+                <Ionicons name="calendar-outline" size={18} color={colors.text} />
+              </View>
+              <View style={styles.trackCopy}>
+                <Text style={[typography.bodyMedium, { color: colors.text }]}>Calendar & logs</Text>
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                  Add or edit tracking entries
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+            </Pressable>
+          </Card>
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -204,23 +226,43 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   scroll: {
     ...screenScrollContent,
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
-  header: {
-    gap: spacing.xs,
+  section: {
+    gap: spacing.sm,
+  },
+  sectionLabel: {
+    paddingHorizontal: spacing.xs,
+    fontSize: 13,
   },
   trendsCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
     gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  trackCard: {
+    paddingVertical: spacing.md,
   },
   chartHint: {
     textAlign: 'center',
     marginTop: -spacing.xs,
   },
-  moreCards: {
-    gap: spacing.sm,
+  trackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 48,
+  },
+  trackIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackCopy: {
+    flex: 1,
+    gap: 2,
   },
   inlineLink: {
     flexDirection: 'row',

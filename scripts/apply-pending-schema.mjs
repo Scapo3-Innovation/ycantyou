@@ -19,7 +19,7 @@ const migrationsDir = join(root, 'supabase', 'migrations');
 const outputFile = join(root, 'supabase', '_pending_migrations.sql');
 
 /** Migrations safe to re-apply on dev (0001–0004 assumed already applied). */
-const PENDING_PREFIXES = ['0005_', '0006_', '0007_', '0008_', '0009_', '0010_', '0011_', '0012_'];
+const PENDING_PREFIXES = ['0005_', '0006_', '0007_', '0008_', '0009_', '0010_', '0011_', '0012_', '0013_', '0014_', '0015_', '0016_'];
 
 function loadEnvFiles() {
   for (const name of ['.env', '.env.local']) {

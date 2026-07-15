@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { useAppDialog } from '@/components/ui/AppDialogProvider';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -17,6 +18,7 @@ import { colors, spacing, typography } from '@/theme';
 export default function ScreenerResultScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { alert } = useAppDialog();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
 
   const { data: result, isLoading } = useScreenerResult(sessionId ?? '');
@@ -55,13 +57,13 @@ export default function ScreenerResultScreen() {
     try {
       const ok = await generateAndShareReport({ result: current, cycles, dailyLogs });
       if (!ok) {
-        Alert.alert('Sharing unavailable', 'Sharing is not available on this device.');
+        alert('Sharing unavailable', 'Sharing is not available on this device.');
       }
     } catch (err) {
       if (__DEV__) {
         console.warn('[screener] PDF generation failed', err);
       }
-      Alert.alert(
+      alert(
         'Could not create report',
         'Something went wrong generating the PDF. Please try again.',
       );

@@ -6,21 +6,22 @@ import { colors, radius, spacing, typography } from '@/theme';
 type IncognitoToggleProps = {
   value: boolean;
   onChange: (value: boolean) => void;
+  compact?: boolean;
 };
 
 /** Toggle anonymous posting — incognito on hides your name from other members. */
-export function IncognitoToggle({ value, onChange }: IncognitoToggleProps) {
+export function IncognitoToggle({ value, onChange, compact = false }: IncognitoToggleProps) {
   return (
     <Pressable
       onPress={() => onChange(!value)}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
       accessibilityLabel={value ? 'Posting anonymously' : 'Posting with your first name'}
-      style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}>
-      <View style={[styles.iconBtn, value && styles.iconBtnActive]}>
+      style={({ pressed }) => [styles.wrap, compact && styles.wrapCompact, pressed && styles.pressed]}>
+      <View style={[styles.iconBtn, compact && styles.iconBtnCompact, value && styles.iconBtnActive]}>
         <Ionicons
           name={value ? 'eye-off-outline' : 'eye-outline'}
-          size={18}
+          size={compact ? 16 : 18}
           color={value ? colors.primary : colors.textMuted}
         />
       </View>
@@ -28,9 +29,11 @@ export function IncognitoToggle({ value, onChange }: IncognitoToggleProps) {
         <Text style={[typography.captionMedium, { color: colors.text }]}>
           {value ? 'Anonymous' : 'Public name'}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
-          {value ? 'Others see “Anonymous”' : 'Others see your first name only'}
-        </Text>
+        {compact ? null : (
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
+            {value ? 'Others see “Anonymous”' : 'Others see your first name only'}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -44,6 +47,13 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceAlt,
+    flex: 1,
+  },
+  wrapCompact: {
+    flex: 0,
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   iconBtn: {
     width: 36,
@@ -52,6 +62,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
+  },
+  iconBtnCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   iconBtnActive: {
     backgroundColor: colors.roseTint,

@@ -37,7 +37,11 @@ export function Button({
   const isDisabled = disabled || loading;
 
   const background =
-    variant === 'primary' ? colors.primary : variant === 'danger' ? colors.danger : 'transparent';
+    variant === 'primary'
+      ? colors.primary
+      : variant === 'danger'
+        ? colors.danger
+        : 'transparent';
   const labelColor =
     variant === 'primary' || variant === 'danger'
       ? colors.primaryText

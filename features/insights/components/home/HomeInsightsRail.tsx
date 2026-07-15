@@ -13,7 +13,6 @@ type Tile = {
   title: string;
   body: string;
   cta: string;
-  accent: 'pink' | 'lavender' | 'mint';
   onPress: () => void;
 };
 
@@ -56,7 +55,6 @@ function buildTiles({
       title: `Cycle · ${dateLabel}`,
       body: `Average ${stats.avg_length} days · ${regular ? 'fairly regular' : 'irregular'}`,
       cta: 'View trend',
-      accent: 'pink',
       onPress: onCycleInsight,
     });
   } else {
@@ -65,7 +63,6 @@ function buildTiles({
       title: `Insights · ${dateLabel}`,
       body: 'Log two periods to unlock your cycle-length trend.',
       cta: 'Log period',
-      accent: 'pink',
       onPress: onCycleInsight,
     });
   }
@@ -78,7 +75,6 @@ function buildTiles({
         ? 'Start a logging streak — even one entry helps.'
         : `${logsThisWeek} day${logsThisWeek === 1 ? '' : 's'} logged so far.`,
     cta: logsThisWeek === 0 ? 'Log today' : 'Keep going',
-    accent: 'mint',
     onPress: onRecentLog,
   });
 
@@ -89,7 +85,6 @@ function buildTiles({
       title: 'Symptom pattern',
       body: `${s.label} often appears in your ${PHASE_LABELS[s.phase]} phase`,
       cta: 'See more',
-      accent: 'lavender',
       onPress: onSymptomInsight,
     });
   }
@@ -99,7 +94,6 @@ function buildTiles({
     title: 'PCOS screener',
     body: 'A short checklist to discuss with a clinician — not a diagnosis.',
     cta: 'Start',
-    accent: 'lavender',
     onPress: onScreener,
   });
 
@@ -109,19 +103,12 @@ function buildTiles({
       title: 'Last log',
       body: format(parseISO(recentLog.log_date), 'EEE d MMM'),
       cta: 'Open log',
-      accent: 'mint',
       onPress: onRecentLog,
     });
   }
 
   return tiles;
 }
-
-const ACCENT_BG = {
-  pink: '#FCE8EF',
-  lavender: '#EDE8F5',
-  mint: '#E8F5F2',
-} as const;
 
 /** Horizontal insight cards — reference-style daily insights rail. */
 export function HomeInsightsRail(props: HomeInsightsRailProps) {
@@ -144,7 +131,7 @@ export function HomeInsightsRail(props: HomeInsightsRailProps) {
             onPress={item.onPress}
             accessibilityRole="button"
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-            <View style={[styles.cardTop, { backgroundColor: ACCENT_BG[item.accent] }]}>
+            <View style={[styles.cardTop, { backgroundColor: colors.roseTint }]}>
               <Text style={[typography.bodyMedium, { color: colors.text }]}>{item.title}</Text>
               <Text style={[typography.caption, styles.body, { color: colors.textMuted }]}>
                 {item.body}
@@ -179,7 +166,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: '#F0C4D4',
+    borderColor: colors.border,
     overflow: 'hidden',
     backgroundColor: colors.surface,
   },

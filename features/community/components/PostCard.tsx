@@ -3,6 +3,7 @@ import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { formatCompactCount } from '@/features/community/formatCount';
+import { buildPostShareMessage } from '@/features/community/shareMessage';
 import { tagLabel } from '@/features/community/tagLabels';
 import { colors, radius, spacing, typography } from '@/theme';
 
@@ -68,15 +69,19 @@ export function PostCard({
   async function onShare() {
     try {
       await Share.share({
-        message: `${post.body.slice(0, 280)}${post.body.length > 280 ? '…' : ''}`,
+        message: buildPostShareMessage({
+          body: post.body,
+          likeCount: post.likeCount,
+          commentCount: post.commentCount,
+        }),
       });
     } catch {
       /* dismissed */
     }
   }
 
-  const content = (
-    <View style={styles.feedPost}>
+  const postBody = (
+    <>
       <View style={styles.feedHeader}>
         <View
           style={[
@@ -96,10 +101,7 @@ export function PostCard({
         </Text>
         <View style={styles.headerSpacer} />
         <Pressable
-          onPress={(e) => {
-            e.stopPropagation?.();
-            onMenu();
-          }}
+          onPress={onMenu}
           accessibilityRole="button"
           accessibilityLabel="Post options"
           hitSlop={12}
@@ -130,6 +132,29 @@ export function PostCard({
         </View>
       ) : null}
 
+      {post.commentCount > 0 && onPress ? (
+        <Pressable onPress={onPress} accessibilityRole="button" style={styles.viewComments}>
+          <Text style={[typography.captionMedium, { color: colors.secondary }]}>
+            View all {formatCompactCount(post.commentCount)} comments
+          </Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
+  return (
+    <View style={styles.feedPost}>
+      {interactive && onPress ? (
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          style={({ pressed }) => [pressed && styles.pressed]}>
+          {postBody}
+        </Pressable>
+      ) : (
+        postBody
+      )}
+
       <View style={styles.actions}>
         <FeedAction
           icon={post.likedByMe ? 'heart' : 'heart-outline'}
@@ -156,29 +181,8 @@ export function PostCard({
         />
       </View>
 
-      {post.commentCount > 0 && onPress ? (
-        <Pressable onPress={onPress} accessibilityRole="button" style={styles.viewComments}>
-          <Text style={[typography.captionMedium, { color: colors.secondary }]}>
-            View all {formatCompactCount(post.commentCount)} comments
-          </Text>
-        </Pressable>
-      ) : null}
-
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
     </View>
-  );
-
-  if (!interactive || !onPress) {
-    return content;
-  }
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={({ pressed }) => [pressed && styles.pressed]}>
-      {content}
-    </Pressable>
   );
 }
 
@@ -222,7 +226,7 @@ function DetailPostCard({
         <View style={styles.tagRow}>
           {post.tags.map((tag) => (
             <View key={tag} style={styles.tagPill}>
-              <Text style={[typography.captionMedium, { color: colors.textMuted }]}>
+              <Text style={[typography.captionMedium, { color: colors.primary }]}>
                 {tagLabel(tag)}
               </Text>
             </View>
@@ -230,7 +234,7 @@ function DetailPostCard({
         </View>
       ) : null}
 
-      <View style={styles.actions}>
+      <View style={[styles.actions, styles.detailActions]}>
         <FeedAction
           icon={post.likedByMe ? 'heart' : 'heart-outline'}
           count={post.likeCount}
@@ -275,12 +279,10 @@ function FeedAction({
 }) {
   return (
     <Pressable
-      onPress={(e) => {
-        e.stopPropagation?.();
-        onPress();
-      }}
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      hitSlop={6}
       style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}>
       <Ionicons name={icon} size={22} color={active ? activeColor : colors.text} />
       {count != null && count > 0 ? (
@@ -344,7 +346,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   tagPill: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.roseTint,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -354,6 +356,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.md,
     gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  detailActions: {
+    paddingHorizontal: 0,
+    marginTop: spacing.sm,
   },
   actionsSpacer: {
     flex: 1,
