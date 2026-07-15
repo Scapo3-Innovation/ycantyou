@@ -2,6 +2,7 @@
 export const onboardingImages = {
   basics: require('../../assets/images/welcome/basics.jpg'),
   cycle: require('../../assets/images/welcome/cycle.jpg'),
+  goals: require('../../assets/images/welcome/goals.jpg'), // wellness / movement hero
   privacy: require('../../assets/images/welcome/privacy.jpg'),
   screening: require('../../assets/images/welcome/screening.jpg'),
 } as const;

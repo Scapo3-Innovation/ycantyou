@@ -11,13 +11,13 @@ const FLOW_LABEL = new Map(FLOW_LEVELS.map((f) => [f.value, f.label]));
 const RECENT_LIMIT = 5;
 
 /** Last few logged days, with flow / mood / energy at a glance. */
-export function RecentActivity({ logs }: { logs: DailyLog[] }) {
+export function RecentActivity({ logs, compact = false }: { logs: DailyLog[]; compact?: boolean }) {
   const c = colors;
 
   const recent = logs.slice(0, RECENT_LIMIT);
 
   return (
-    <InsightCard title="Recent activity">
+    <InsightCard title="Recent activity" compact={compact}>
       {recent.length === 0 ? (
         <InsightEmptyState message="No logs yet. Tap Log today to start." />
       ) : (

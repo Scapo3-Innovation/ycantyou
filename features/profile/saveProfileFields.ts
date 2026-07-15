@@ -1,13 +1,14 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
-import type { Goal, SexAtBirth } from '@/types/database';
+import type { AccountMode, Goal, SexAtBirth } from '@/types/database';
 
 export type ProfileFieldPatch = {
   full_name?: string;
   dob?: string;
   sex_assigned_at_birth?: SexAtBirth;
-  goal?: Goal;
+  goal?: Goal | null;
+  account_mode?: AccountMode;
   language?: string;
   onboarding_status?: 'pending' | 'completed';
 };

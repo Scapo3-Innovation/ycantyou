@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 
-import { BRAND_NAME, BRAND_TAGLINE, brandAssets } from '@/features/brand/assets';
+import { BRAND_NAME, BRAND_TAGLINE, LOGO_FULL_ASPECT, LOGO_ICON_ASPECT, brandAssets } from '@/features/brand/assets';
 import { colors, spacing, typography } from '@/theme';
 
 type BrandLogoProps = {
@@ -36,7 +36,7 @@ export function BrandLogo({
   }
 
   const source = variant === 'full' ? brandAssets.logoFull : brandAssets.logoIcon;
-  const aspect = variant === 'full' ? 2.8 : 1;
+  const aspect = variant === 'full' ? LOGO_FULL_ASPECT : LOGO_ICON_ASPECT;
   const height = size / aspect;
 
   return (

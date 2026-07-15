@@ -1,9 +1,23 @@
 import { supabase } from '@/lib/supabase';
-import type { ProfileUpdate } from '@/types/database';
+import type { Goal, ProfileUpdate, SexAtBirth } from '@/types/database';
 
 import { DEFAULT_LANGUAGE } from '@/features/content/constants';
 import { saveProfileFields } from '@/features/profile/saveProfileFields';
 import { CONSENT_TYPE_HEALTH_DATA, CONSENT_VERSION } from './constants';
+
+export type OnboardingBasics = {
+  full_name: string;
+  dob: string;
+  sex_assigned_at_birth: SexAtBirth;
+};
+
+export type CompletePrimaryOnboardingInput = OnboardingBasics & {
+  goal: Goal;
+};
+
+export type CompletePartnerOnboardingInput = OnboardingBasics & {
+  partner_code: string;
+};
 
 /**
  * Record explicit DPDP consent for health-data processing.
@@ -50,7 +64,42 @@ export async function completeOnboarding(
 ): Promise<CompleteOnboardingResult> {
   return saveProfileFields(userId, {
     ...details,
+    account_mode: 'primary',
     language: DEFAULT_LANGUAGE,
     onboarding_status: 'completed',
   });
+}
+
+/** Primary user path — basics + goal. */
+export async function completePrimaryOnboarding(
+  userId: string,
+  details: CompletePrimaryOnboardingInput,
+): Promise<CompleteOnboardingResult> {
+  return completeOnboarding(userId, details);
+}
+
+/** Partner user path — redeem code then mark onboarding complete. */
+export async function completePartnerOnboarding(
+  userId: string,
+  details: CompletePartnerOnboardingInput,
+): Promise<CompleteOnboardingResult> {
+  const { redeemPartnerCode } = await import('@/features/partner/api');
+
+  const basicsResult = await saveProfileFields(userId, {
+    full_name: details.full_name,
+    dob: details.dob,
+    sex_assigned_at_birth: details.sex_assigned_at_birth,
+    language: DEFAULT_LANGUAGE,
+    onboarding_status: 'pending',
+  });
+
+  await redeemPartnerCode(details.partner_code);
+
+  await saveProfileFields(userId, {
+    goal: null,
+    account_mode: 'partner',
+    onboarding_status: 'completed',
+  });
+
+  return basicsResult;
 }

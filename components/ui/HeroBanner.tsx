@@ -8,13 +8,17 @@ import { colors, spacing, typography } from '@/theme';
 
 type HeroBannerProps = {
   image: ImageSourcePropType;
-  title: string;
+  title?: string;
   subtitle?: string;
   /** Smaller hero for compact forms (e.g. sign-in, onboarding). */
   compact?: boolean;
+  /** Override photo area height (excluding topInset). */
+  photoHeight?: number;
   /** Safe-area inset so the photo runs edge-to-edge under the status bar. */
   topInset?: number;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Space below title/subtitle inside the hero. */
+  copyBottomInset?: number;
 };
 
 /** Full-bleed photo header with gradient fade into the screen background. */
@@ -23,28 +27,35 @@ export function HeroBanner({
   title,
   subtitle,
   compact = false,
+  photoHeight,
   topInset = 0,
   icon,
+  copyBottomInset,
 }: HeroBannerProps) {
-  const photoHeight = compact ? 268 : 320;
+  const resolvedPhotoHeight = photoHeight ?? (compact ? 268 : 320);
+  const showCopy = Boolean(title || subtitle || icon);
 
   return (
-    <View style={[styles.wrap, { height: photoHeight + topInset, paddingTop: topInset }]}>
+    <View
+      style={[styles.wrap, { height: resolvedPhotoHeight + topInset, paddingTop: topInset }]}>
       <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
       <LinearGradient
         colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.35)', colors.background]}
         locations={[0.35, 0.72, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.copy}>
-        {icon ? (
-          <View style={styles.iconBadge}>
-            <Ionicons name={icon} size={22} color={colors.primary} />
-          </View>
-        ) : null}
-        <Text style={[typography.h1, styles.title]}>{title}</Text>
-        {subtitle ? <Text style={[typography.body, styles.subtitle]}>{subtitle}</Text> : null}
-      </View>
+      {showCopy ? (
+        <View
+          style={[styles.copy, { paddingBottom: copyBottomInset ?? spacing.md }]}>
+          {icon ? (
+            <View style={styles.iconBadge}>
+              <Ionicons name={icon} size={22} color={colors.primary} />
+            </View>
+          ) : null}
+          {title ? <Text style={[typography.h1, styles.title]}>{title}</Text> : null}
+          {subtitle ? <Text style={[typography.body, styles.subtitle]}>{subtitle}</Text> : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -58,7 +69,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
     gap: spacing.xs,
   },
   iconBadge: {

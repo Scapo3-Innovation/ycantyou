@@ -1,13 +1,12 @@
-import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO, subDays } from 'date-fns';
 
+import { BLEEDING_FLOW_LEVELS } from '@/features/tracking/constants';
+import { cycleEndDate } from '@/features/tracking/cycleOverlap';
 import type { CyclePrediction } from '@/features/tracking/prediction';
-import type { Cycle } from '@/types/database';
+import type { Cycle, DailyLog } from '@/types/database';
 
 import { deriveCyclePhase } from './phase';
 import type { CyclePhase } from './types';
-
-/** Max days after a period start we still call "in your period" when no end is logged. */
-const BLEED_CAP = 8;
 
 /** The headline cycle state shown in the dashboard hero (display only — no backend). */
 export type CycleState =
@@ -16,26 +15,78 @@ export type CycleState =
   | { kind: 'cycle'; day: number; phase: CyclePhase | null } // Cycle day N
   | { kind: 'late'; days: number }; // Late · N days
 
-type Args = { cycles: Cycle[]; prediction: CyclePrediction; today: string };
+type Args = {
+  cycles: Cycle[];
+  prediction: CyclePrediction;
+  today: string;
+  dailyLogs?: DailyLog[];
+};
+
+/** Find the logged period that contains a date, checking every cycle — not just the newest. */
+function findCycleContainingDate(cycles: Cycle[], date: string): Cycle | null {
+  for (const cycle of cycles) {
+    if (date < cycle.start_date) continue;
+    if (date <= cycleEndDate(cycle)) return cycle;
+  }
+  return null;
+}
+
+/** Most recent period that has already started on or before the date. */
+function anchorCycle(cycles: Cycle[], date: string): Cycle | null {
+  return cycles.find((cycle) => cycle.start_date <= date) ?? null;
+}
+
+/** Fallback when bleeding is logged on daily logs but not yet in a cycle row. */
+function periodDayFromFlowLogs(date: string, dailyLogs: DailyLog[]): number | null {
+  const bleedingDates = new Set(
+    dailyLogs
+      .filter((log) => log.flow_level && BLEEDING_FLOW_LEVELS.includes(log.flow_level))
+      .map((log) => log.log_date),
+  );
+  if (!bleedingDates.has(date)) return null;
+
+  let start = date;
+  let cursor = parseISO(date);
+  while (true) {
+    const prev = format(subDays(cursor, 1), 'yyyy-MM-dd');
+    if (!bleedingDates.has(prev)) break;
+    start = prev;
+    cursor = subDays(cursor, 1);
+  }
+
+  return differenceInCalendarDays(parseISO(date), parseISO(start)) + 1;
+}
 
 /**
  * Derive the headline state from logged cycles + the (honest) prediction:
- *  - inside the most recent period → "Period · Day X",
+ *  - inside any logged period → "Period · Day X",
  *  - past a regular-cycle prediction → "Late · N days",
  *  - otherwise → "Cycle day N" (with a soft phase label),
  *  - nothing logged → "none".
  */
-export function deriveCycleState({ cycles, prediction, today }: Args): CycleState {
-  const latest = cycles[0]; // newest-first
-  if (!latest) return { kind: 'none' };
+export function deriveCycleState({
+  cycles,
+  prediction,
+  today,
+  dailyLogs = [],
+}: Args): CycleState {
+  const containing = findCycleContainingDate(cycles, today);
+  if (containing) {
+    const day = differenceInCalendarDays(parseISO(today), parseISO(containing.start_date)) + 1;
+    return { kind: 'period', day };
+  }
 
-  const dayIndex = differenceInCalendarDays(parseISO(today), parseISO(latest.start_date));
-  if (dayIndex < 0) return { kind: 'none' };
+  const flowDay = periodDayFromFlowLogs(today, dailyLogs);
+  if (flowDay !== null) {
+    return { kind: 'period', day: flowDay };
+  }
 
-  const inPeriod = latest.end_date
-    ? differenceInCalendarDays(parseISO(today), parseISO(latest.end_date)) <= 0
-    : dayIndex <= BLEED_CAP;
-  if (inPeriod) return { kind: 'period', day: dayIndex + 1 };
+  if (cycles.length === 0) return { kind: 'none' };
+
+  const anchor = anchorCycle(cycles, today);
+  if (!anchor) return { kind: 'none' };
+
+  const dayIndex = differenceInCalendarDays(parseISO(today), parseISO(anchor.start_date));
 
   if (prediction.status === 'regular') {
     const lateDays = differenceInCalendarDays(parseISO(today), parseISO(prediction.predictedStart));
@@ -49,3 +100,5 @@ export function deriveCycleState({ cycles, prediction, today }: Args): CycleStat
   const phase = avg ? deriveCyclePhase(dayIndex, avg) : null;
   return { kind: 'cycle', day: dayIndex + 1, phase };
 }
+
+export { cycleEndDate };

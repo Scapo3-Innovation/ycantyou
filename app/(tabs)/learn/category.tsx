@@ -11,7 +11,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useArticlesByCategory } from '@/features/content/queries';
-import { spacing } from '@/theme';
+import { fullScreenScrollContent } from '@/theme';
 
 export default function CategoryScreen() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function CategoryScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader title={name ?? 'Articles'} onBack={() => router.back()} />
 
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />
@@ -34,7 +34,7 @@ export default function CategoryScreen() {
             message="We're adding more here soon — check back."
           />
         ) : (
-          <Card>
+          <Card style={styles.listCard}>
             {articles.map((article, i) => (
               <Fragment key={article.id}>
                 {i > 0 ? <Divider /> : null}
@@ -57,8 +57,9 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
+  scroll: fullScreenScrollContent,
+  listCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
 });

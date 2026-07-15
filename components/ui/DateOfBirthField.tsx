@@ -19,6 +19,7 @@ type DateOfBirthFieldProps = {
   onChange: (value: string) => void;
   error?: string;
   placeholder?: string;
+  variant?: 'default' | 'profileRow';
 };
 
 const MIN_DATE = new Date(1920, 0, 1);
@@ -44,7 +45,8 @@ export function DateOfBirthField({
   value,
   onChange,
   error,
-  placeholder = 'Select your date of birth',
+  placeholder = 'Tap to choose date',
+  variant = 'default',
 }: DateOfBirthFieldProps) {
   const c = colors;
   const [showPicker, setShowPicker] = useState(false);
@@ -68,11 +70,14 @@ export function DateOfBirthField({
   if (Platform.OS === 'web') {
     return (
       <View style={styles.container}>
-        <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
+        {variant === 'default' ? (
+          <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
+        ) : null}
         <View
           style={[
-            styles.inputRow,
+            variant === 'profileRow' ? styles.profileRow : styles.inputRow,
             { backgroundColor: c.surface, borderColor: error ? c.danger : c.border },
+            variant === 'profileRow' && { borderWidth: 0 },
           ]}>
           {createElement('input', {
             type: 'date',
@@ -106,25 +111,41 @@ export function DateOfBirthField({
 
   return (
     <View style={styles.container}>
-      <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
+      {variant === 'default' ? (
+        <Text style={[typography.captionMedium, { color: c.textMuted }]}>{label}</Text>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityHint="Opens calendar to choose your date of birth"
         onPress={() => setShowPicker(true)}
         style={[
-          styles.inputRow,
+          variant === 'profileRow' ? styles.profileRow : styles.inputRow,
           { backgroundColor: c.surface, borderColor: error ? c.danger : c.border },
+          variant === 'profileRow' && { borderWidth: 0, paddingHorizontal: 0, minHeight: 0 },
         ]}>
-        <Text
-          style={[
-            typography.body,
-            styles.valueText,
-            { color: displayValue ? c.text : c.textMuted },
-          ]}>
-          {displayValue || placeholder}
-        </Text>
-        <Ionicons name="calendar-outline" size={20} color={c.textMuted} />
+        {variant === 'profileRow' ? (
+          <View style={styles.profileCopy}>
+            <Text style={[typography.caption, { color: c.textMuted }]}>{label}</Text>
+            <Text
+              style={[
+                typography.bodyMedium,
+                { color: displayValue ? c.text : c.textMuted },
+              ]}>
+              {displayValue || placeholder}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              typography.body,
+              styles.valueText,
+              { color: displayValue ? c.text : c.textMuted },
+            ]}>
+            {displayValue || placeholder}
+          </Text>
+        )}
+        <Ionicons name="calendar-outline" size={20} color={c.secondary} />
       </Pressable>
 
       {error ? (
@@ -181,7 +202,7 @@ const styles = StyleSheet.create({
   inputRow: {
     minHeight: 52,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,6 +210,17 @@ const styles = StyleSheet.create({
   },
   valueText: {
     flex: 1,
+  },
+  profileRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  profileCopy: {
+    flex: 1,
+    gap: 2,
   },
   backdrop: {
     flex: 1,

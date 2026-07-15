@@ -10,7 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { useSearchArticles } from '@/features/content/queries';
-import { colors, spacing, typography } from '@/theme';
+import { colors, fullScreenScrollContent, typography } from '@/theme';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function SearchScreen() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader title="Search" onBack={() => router.back()} />
 
         <TextField
           label="Search articles"
@@ -43,7 +43,7 @@ export default function SearchScreen() {
         ) : isFetching ? null : results.length === 0 ? (
           <EmptyState icon="search-outline" title="No matches" message="Try another word." />
         ) : (
-          <Card>
+          <Card style={styles.listCard}>
             {results.map((article, i) => (
               <Fragment key={article.id}>
                 {i > 0 ? <Divider /> : null}
@@ -66,8 +66,9 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
+  scroll: fullScreenScrollContent,
+  listCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
 });

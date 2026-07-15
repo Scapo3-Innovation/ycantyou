@@ -1,47 +1,60 @@
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 
+import { TourAnchor } from '@/features/tour/TourAnchor';
 import { firstName, timeGreeting } from './homeCopy';
 
 type HomeTopBarProps = {
+  today: string;
   selectedDate: string;
   userName?: string | null;
+  onGoToToday: () => void;
 };
 
 /** Profile · greeting · calendar shortcut. */
-export function HomeTopBar({ selectedDate, userName }: HomeTopBarProps) {
+export function HomeTopBar({ today, selectedDate, userName, onGoToToday }: HomeTopBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const dateTitle = format(parseISO(selectedDate), 'd MMMM');
   const name = firstName(userName);
   const greeting = timeGreeting();
+  const viewingToday = selectedDate === today;
 
   return (
     <View style={[styles.row, { paddingTop: insets.top + spacing.sm }]}>
-      <Pressable
-        onPress={() => router.push('/(tabs)/profile')}
-        accessibilityRole="button"
-        accessibilityLabel="Open profile"
-        hitSlop={8}
-        style={styles.iconBtn}>
-        <View style={styles.avatar}>
-          <Text style={[typography.captionMedium, { color: colors.primary }]}>
-            {name ? name.charAt(0).toUpperCase() : 'Y'}
-          </Text>
-        </View>
-      </Pressable>
+      <TourAnchor id="tour-home-profile">
+        <Pressable
+          onPress={() => router.push('/(tabs)/profile')}
+          accessibilityRole="button"
+          accessibilityLabel="Open profile"
+          hitSlop={8}
+          style={styles.iconBtn}>
+          <View style={styles.avatar}>
+            <Text style={[typography.captionMedium, { color: colors.primary }]}>
+              {name ? name.charAt(0).toUpperCase() : 'Y'}
+            </Text>
+          </View>
+        </Pressable>
+      </TourAnchor>
 
       <View style={styles.center}>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
+        <Text style={[typography.bodyMedium, styles.greeting, { color: colors.text }]}>
           {greeting}
           {name ? `, ${name}` : ''}
         </Text>
-        <Text style={[typography.bodyMedium, styles.title, { color: colors.text }]}>{dateTitle}</Text>
+        {!viewingToday ? (
+          <Pressable
+            onPress={onGoToToday}
+            accessibilityRole="button"
+            accessibilityLabel="Jump to today"
+            hitSlop={8}
+            style={({ pressed }) => [styles.todayPill, pressed && styles.todayPillPressed]}>
+            <Text style={[typography.captionMedium, { color: colors.primary }]}>Today</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <Pressable
@@ -81,9 +94,20 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: spacing.xs,
   },
-  title: {
-    fontSize: 18,
+  greeting: {
+    textAlign: 'center',
+  },
+  todayPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  todayPillPressed: {
+    opacity: 0.88,
   },
 });

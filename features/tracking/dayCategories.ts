@@ -1,8 +1,8 @@
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { addDays, eachDayOfInterval, format, parseISO } from 'date-fns';
 
 import type { Cycle, DailyLog } from '@/types/database';
 
-import { BLEEDING_FLOW_LEVELS } from './constants';
+import { BLEEDING_FLOW_LEVELS, ONGOING_PERIOD_CAP_DAYS } from './constants';
 import type { CyclePrediction } from './prediction';
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -34,7 +34,9 @@ export function buildDayCategories(
   const logged = new Set<string>();
 
   for (const cycle of cycles) {
-    const end = cycle.end_date ?? cycle.start_date;
+    const end =
+      cycle.end_date ??
+      format(addDays(parseISO(cycle.start_date), ONGOING_PERIOD_CAP_DAYS), 'yyyy-MM-dd');
     for (const day of daysInRange(cycle.start_date, end)) period.add(day);
   }
 

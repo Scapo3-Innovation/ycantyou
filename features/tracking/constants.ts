@@ -1,16 +1,149 @@
+import type { Ionicons } from '@expo/vector-icons';
+
 import type { FlowLevel } from '@/types/database';
 
-/** Period flow options for the daily-log picker (ordered light → heavy). */
-export const FLOW_LEVELS: readonly { value: FlowLevel; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'spotting', label: 'Spotting' },
-  { value: 'light', label: 'Light' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'heavy', label: 'Heavy' },
+import { colors } from '@/theme/colors';
+
+type IconName = keyof typeof Ionicons.glyphMap;
+
+export type WellnessOption = {
+  value: number;
+  label: string;
+  icon: IconName;
+  ring: string;
+  iconColor: string;
+};
+
+export type FlowOption = {
+  value: FlowLevel;
+  label: string;
+  icon: IconName;
+  ring: string;
+  iconColor: string;
+};
+
+/** Mood picker — calm, relatable icons on a 1–5 scale. */
+export const MOOD_OPTIONS: readonly WellnessOption[] = [
+  {
+    value: 4,
+    label: 'Good',
+    icon: 'happy-outline',
+    ring: colors.secondary,
+    iconColor: colors.secondary,
+  },
+  {
+    value: 3,
+    label: 'Okay',
+    icon: 'remove-outline',
+    ring: '#E8B923',
+    iconColor: colors.textMuted,
+  },
+  {
+    value: 2,
+    label: 'Not great',
+    icon: 'sad-outline',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+  {
+    value: 1,
+    label: 'Stressed',
+    icon: 'cloudy-night-outline',
+    ring: '#9B7EDE',
+    iconColor: '#9B7EDE',
+  },
+  {
+    value: 5,
+    label: 'Amazing',
+    icon: 'heart',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+];
+
+/** Energy picker — rest and vitality without playful emoji. */
+export const ENERGY_OPTIONS: readonly WellnessOption[] = [
+  {
+    value: 1,
+    label: 'Drained',
+    icon: 'battery-dead-outline',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+  {
+    value: 2,
+    label: 'Low',
+    icon: 'moon-outline',
+    ring: '#9B7EDE',
+    iconColor: '#9B7EDE',
+  },
+  {
+    value: 3,
+    label: 'Steady',
+    icon: 'leaf-outline',
+    ring: '#E8B923',
+    iconColor: colors.secondary,
+  },
+  {
+    value: 4,
+    label: 'Good',
+    icon: 'sunny-outline',
+    ring: colors.secondary,
+    iconColor: colors.secondary,
+  },
+  {
+    value: 5,
+    label: 'Energised',
+    icon: 'flash-outline',
+    ring: colors.secondary,
+    iconColor: colors.secondary,
+  },
+];
+
+/** Period flow — droplet-style icons women recognise from cycle apps. */
+export const FLOW_LEVELS: readonly FlowOption[] = [
+  {
+    value: 'none',
+    label: 'None',
+    icon: 'checkmark-circle-outline',
+    ring: colors.textMuted,
+    iconColor: colors.textMuted,
+  },
+  {
+    value: 'spotting',
+    label: 'Spotting',
+    icon: 'ellipse-outline',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+  {
+    value: 'light',
+    label: 'Light',
+    icon: 'water-outline',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+  {
+    value: 'medium',
+    label: 'Medium',
+    icon: 'water',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
+  {
+    value: 'heavy',
+    label: 'Heavy',
+    icon: 'water-sharp',
+    ring: colors.primary,
+    iconColor: colors.primary,
+  },
 ];
 
 /** Flow levels that represent actual bleeding (used to mark period days on the calendar). */
 export const BLEEDING_FLOW_LEVELS: readonly FlowLevel[] = ['spotting', 'light', 'medium', 'heavy'];
+
+/** Max days after a period start we treat as bleeding when no end date is logged. */
+export const ONGOING_PERIOD_CAP_DAYS = 8;
 
 /** 1–5 scale labels shared by the mood and energy pickers. */
 export const SCALE_LABELS: Record<number, string> = {

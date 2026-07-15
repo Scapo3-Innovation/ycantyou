@@ -15,14 +15,14 @@ export function HomeOrbActions({ onEditPeriod, onDailyLog, onScreener }: HomeOrb
   return (
     <Animated.View entering={FadeInDown.delay(100).duration(450).springify()} style={styles.row}>
       <OrbAction
-        icon="create-outline"
+        icon="water"
         label="Edit period"
         filled
         onPress={onEditPeriod}
         accessibilityLabel="Edit period"
       />
       <OrbAction
-        icon="add"
+        icon="happy-outline"
         label="Daily log"
         onPress={onDailyLog}
         accessibilityLabel="Log symptoms for this day"
@@ -76,8 +76,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: spacing.xl,
-    paddingBottom: spacing.lg,
+    gap: spacing.lg,
   },
   item: {
     alignItems: 'center',
@@ -100,9 +99,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   orbGhost: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   label: {
     textAlign: 'center',

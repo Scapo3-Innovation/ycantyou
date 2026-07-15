@@ -20,6 +20,7 @@ import { WELCOME_SLIDES, type WelcomeSlide } from '@/features/onboarding/welcome
 import { colors, radius, spacing, typography } from '@/theme';
 
 const IMAGE_HEIGHT_RATIO = 0.48;
+const AUTO_ADVANCE_MS = 5000;
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -36,6 +37,20 @@ export default function WelcomeScreen() {
     if (forceShow || seen !== true) return;
     router.replace('/(auth)/sign-in');
   }, [forceShow, seen, router]);
+
+  useEffect(() => {
+    if (!forceShow && seen !== false) return;
+
+    const timer = setInterval(() => {
+      setIndex((current) => {
+        const next = (current + 1) % WELCOME_SLIDES.length;
+        listRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, AUTO_ADVANCE_MS);
+
+    return () => clearInterval(timer);
+  }, [forceShow, seen, index]);
 
   if (!forceShow && seen !== false) {
     return <SafeAreaView style={styles.safe} edges={['bottom']} />;
@@ -72,6 +87,12 @@ export default function WelcomeScreen() {
           bounces={false}
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScrollEnd}
+          onScrollToIndexFailed={(info) => {
+            listRef.current?.scrollToOffset({
+              offset: info.averageItemLength * info.index,
+              animated: true,
+            });
+          }}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           renderItem={({ item }) => (
             <View style={[styles.slide, { width }]}>
@@ -92,9 +113,11 @@ export default function WelcomeScreen() {
               </View>
 
               <View style={styles.copy}>
-                {index === 0 ? (
-                  <BrandLogo variant="full" size={220} style={styles.logo} />
-                ) : null}
+                <BrandLogo
+                  variant="full"
+                  size={Math.min(width - spacing.xl * 2, 280)}
+                  style={styles.logo}
+                />
                 <Text style={[typography.display, styles.center, styles.title]}>{item.title}</Text>
                 <Text style={[typography.body, styles.center, styles.body]}>{item.body}</Text>
               </View>

@@ -1,3 +1,4 @@
+import '@/lib/cryptoPolyfill';
 import 'react-native-url-polyfill/auto';
 import 'react-native-reanimated';
 
@@ -16,10 +17,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { Screen } from '@/components/ui/Screen';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useReturnToWelcomeOnSignOut } from '@/features/auth/useReturnToWelcomeOnSignOut';
+import { useAuthRouteRedirect } from '@/features/auth/useAuthRouteRedirect';
 import { useProfile } from '@/features/profile/useProfile';
+import { GuidedTourHost } from '@/features/tour/GuidedTourHost';
+import { TourProvider } from '@/features/tour/TourContext';
 import { applyDefaultFont } from '@/lib/applyDefaultFont';
 import { persistOptions } from '@/lib/persister';
 import { queryClient } from '@/lib/queryClient';
@@ -75,37 +81,57 @@ export default function RootLayout() {
  * so signing in / completing onboarding / logging out all "just work".
  */
 function RootNavigator() {
-  const { session, isLoading: authLoading } = useAuth();
+  const { session, isLoading: authLoading, connectionError } = useAuth();
   useReturnToWelcomeOnSignOut();
   const userId = session?.user.id;
-  const { data: profile, isLoading: profileLoading } = useProfile(userId);
-
-  // Wait for the session to restore and (when signed in) the profile to load,
-  // so we never flash the wrong group on launch.
-  if (authLoading || (session && profileLoading)) {
-    return <LoadingScreen />;
-  }
+  const { data: profile } = useProfile(userId);
 
   const isSignedIn = Boolean(session);
   const isOnboarded = profile?.onboarding_status === 'completed';
+  const isPartner = profile?.account_mode === 'partner';
+
+  useAuthRouteRedirect(authLoading, isSignedIn, isOnboarded, isPartner);
+
+  if (connectionError) {
+    return (
+      <Screen>
+        <ErrorState title="Can't reach Supabase" message={connectionError} />
+      </Screen>
+    );
+  }
+
+  // Only block on auth restore — never unmount the Stack for profile fetch.
+  // Unmounting prevented auth/callback from running and caused infinite loading after OAuth.
+  if (authLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
+    <TourProvider userId={userId}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
 
-      <Stack.Protected guard={isSignedIn && !isOnboarded}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
+        <Stack.Protected guard={!isSignedIn}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
 
-      <Stack.Protected guard={isSignedIn && isOnboarded}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(account)" />
-        <Stack.Screen name="(screener)" />
-      </Stack.Protected>
+        <Stack.Protected guard={isSignedIn && !isOnboarded}>
+          <Stack.Screen name="(onboarding)" />
+        </Stack.Protected>
 
-      <Stack.Screen name="+not-found" />
-    </Stack>
+        <Stack.Protected guard={isSignedIn && isOnboarded && !isPartner}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(account)" />
+          <Stack.Screen name="(screener)" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={isSignedIn && isOnboarded && isPartner}>
+          <Stack.Screen name="(partner-tabs)" />
+        </Stack.Protected>
+
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      {isSignedIn && isOnboarded && !isPartner ? <GuidedTourHost /> : null}
+    </TourProvider>
   );
 }

@@ -11,7 +11,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useBookmarkedArticles } from '@/features/content/queries';
-import { spacing } from '@/theme';
+import { fullScreenScrollContent } from '@/theme';
 
 export default function BookmarksScreen() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function BookmarksScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader onBack={() => router.back()} />
+        <ScreenHeader title="Saved articles" onBack={() => router.back()} />
 
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />
@@ -33,7 +33,7 @@ export default function BookmarksScreen() {
             message="Tap the bookmark on any article to save it here."
           />
         ) : (
-          <Card>
+          <Card style={styles.listCard}>
             {articles.map((article, i) => (
               <Fragment key={article.id}>
                 {i > 0 ? <Divider /> : null}
@@ -56,8 +56,9 @@ export default function BookmarksScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
+  scroll: fullScreenScrollContent,
+  listCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
 });

@@ -7,14 +7,14 @@ type SectionHeaderProps = {
   action?: { label: string; onPress: () => void };
 };
 
-/** A section title (h2) with an optional trailing text action. */
+/** Section label above a card group — profile/track pattern. */
 export function SectionHeader({ title, action }: SectionHeaderProps) {
   return (
     <View style={styles.row}>
-      <Text style={[typography.h2, { color: colors.text }]}>{title}</Text>
+      <Text style={[typography.bodyMedium, { color: colors.text }]}>{title}</Text>
       {action ? (
         <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={8}>
-          <Text style={[typography.bodyMedium, { color: colors.primary }]}>{action.label}</Text>
+          <Text style={[typography.captionMedium, { color: colors.secondary }]}>{action.label}</Text>
         </Pressable>
       ) : null}
     </View>

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { isSchemaNotReadyError } from '@/lib/supabaseErrors';
 
 import { fetchFeed, fetchPostDetail } from './api';
 
@@ -17,6 +18,10 @@ export function useFeed() {
     queryKey: communityKeys.feed(userId),
     queryFn: () => fetchFeed(userId as string),
     enabled: Boolean(userId),
+    retry: (failureCount, error) => {
+      if (isSchemaNotReadyError(error)) return false;
+      return failureCount < 2;
+    },
   });
 }
 

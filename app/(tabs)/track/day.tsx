@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,26 +14,47 @@ import {
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
+import { HeaderIconButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { FlowLevelPicker } from '@/features/tracking/components/FlowLevelPicker';
-import { Scale } from '@/features/tracking/components/Scale';
 import { SymptomMultiSelect } from '@/features/tracking/components/SymptomMultiSelect';
+import { WellnessEmojiPicker } from '@/features/tracking/components/WellnessEmojiPicker';
+import { ENERGY_OPTIONS, MOOD_OPTIONS } from '@/features/tracking/constants';
 import { useDeleteDailyLog, useUpsertDailyLog } from '@/features/tracking/mutations';
 import { useDailyLog, useSymptoms } from '@/features/tracking/queries';
 import { dailyLogSchema } from '@/features/tracking/validation';
-import { colors, spacing, typography } from '@/theme';
+import { colors, radius, screenScrollContent, spacing, typography } from '@/theme';
 import type { FlowLevel } from '@/types/database';
+
+function LogSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={[typography.captionMedium, styles.sectionTitle, { color: colors.textMuted }]}>
+          {title}
+        </Text>
+        {hint ? (
+          <Text style={[typography.caption, { color: colors.textFaint }]}>{hint}</Text>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function DayLogScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ date?: string }>();
+  const params = useLocalSearchParams<{ date?: string; mood?: string }>();
   const date = params.date ?? format(new Date(), 'yyyy-MM-dd');
+  const prefilledMood = parseMoodParam(params.mood);
   const c = colors;
+  const dateLabel = format(new Date(`${date}T00:00:00`), 'EEEE, d MMMM');
 
   const { data: existing, isLoading } = useDailyLog(date);
   const { data: symptoms = [] } = useSymptoms();
   const upsert = useUpsertDailyLog(date);
   const remove = useDeleteDailyLog(date);
+  const isEditing = Boolean(existing);
 
   const [flow, setFlow] = useState<FlowLevel | null>(null);
   const [mood, setMood] = useState<number | null>(null);
@@ -42,8 +63,6 @@ export default function DayLogScreen() {
   const [symptomCodes, setSymptomCodes] = useState<string[]>([]);
   const [error, setError] = useState<string>();
 
-  // Seed the form once the existing log (if any) has loaded. Adjusting state during
-  // render (guarded by a key) is React's recommended alternative to a seeding effect.
   const [seededFor, setSeededFor] = useState<string | null>(null);
   if (!isLoading && seededFor !== date) {
     setSeededFor(date);
@@ -53,6 +72,12 @@ export default function DayLogScreen() {
       setEnergy(existing.energy);
       setNotes(existing.notes ?? '');
       setSymptomCodes(existing.symptom_codes);
+    } else {
+      setFlow(null);
+      setMood(prefilledMood);
+      setEnergy(null);
+      setNotes('');
+      setSymptomCodes([]);
     }
   }
 
@@ -93,26 +118,69 @@ export default function DayLogScreen() {
     ]);
   }
 
+  const saving = upsert.isPending;
+
   return (
     <Screen>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={[typography.bodyMedium, { color: c.text }]}>
-              {format(new Date(`${date}T00:00:00`), 'EEEE, d MMMM yyyy')}
-            </Text>
-          </View>
-
-          <FlowLevelPicker value={flow} onChange={setFlow} />
-          <Scale label="Mood" value={mood} onChange={setMood} />
-          <Scale label="Energy" value={energy} onChange={setEnergy} />
-          <SymptomMultiSelect
-            symptoms={symptoms}
-            selected={symptomCodes}
-            onChange={setSymptomCodes}
+          <ScreenHeader
+            subtitle={dateLabel}
+            onBack={() => router.back()}
+            right={
+              <HeaderIconButton
+                icon="settings-outline"
+                onPress={() => router.push('/(account)/settings')}
+                accessibilityLabel="Open settings"
+              />
+            }
           />
+
+          {isEditing ? (
+            <View style={styles.editBanner}>
+              <Text style={[typography.captionMedium, { color: colors.primary }]}>
+                Already logged for this day
+              </Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>
+                Update your entry below — one log per day.
+              </Text>
+            </View>
+          ) : null}
+
+          <LogSection title="Flow">
+            <FlowLevelPicker value={flow} onChange={setFlow} hideLabel />
+          </LogSection>
+
+          <LogSection title="How you felt">
+            <View style={styles.wellnessBlock}>
+              <WellnessEmojiPicker
+                label="Mood"
+                options={MOOD_OPTIONS}
+                value={mood}
+                onChange={setMood}
+              />
+              <WellnessEmojiPicker
+                label="Energy"
+                options={ENERGY_OPTIONS}
+                value={energy}
+                onChange={setEnergy}
+              />
+            </View>
+          </LogSection>
+
+          <LogSection title="Symptoms" hint="Tap all that apply today">
+            <View style={styles.symptomsBlock}>
+              <SymptomMultiSelect
+                symptoms={symptoms}
+                selected={symptomCodes}
+                onChange={setSymptomCodes}
+                hideLabel
+              />
+            </View>
+          </LogSection>
+
           <TextField
             label="Notes"
             value={notes}
@@ -124,8 +192,22 @@ export default function DayLogScreen() {
 
           {error ? <Text style={[typography.caption, { color: c.danger }]}>{error}</Text> : null}
 
-          <Button label="Save" onPress={onSave} loading={upsert.isPending} />
-          {existing ? (
+          <View style={styles.actionsRow}>
+            <Button
+              label="Cancel"
+              variant="secondary"
+              onPress={() => router.back()}
+              style={styles.actionButton}
+            />
+            <Button
+              label={isEditing ? 'Update log' : 'Save log'}
+              onPress={onSave}
+              loading={saving}
+              style={styles.actionButton}
+            />
+          </View>
+
+          {isEditing ? (
             <Button
               label="Delete log"
               variant="danger"
@@ -133,11 +215,17 @@ export default function DayLogScreen() {
               loading={remove.isPending}
             />
           ) : null}
-          <Button label="Cancel" variant="secondary" onPress={() => router.back()} />
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
+}
+
+function parseMoodParam(value: string | undefined): number | null {
+  if (!value) return null;
+  const mood = Number(value);
+  if (!Number.isInteger(mood)) return null;
+  return MOOD_OPTIONS.some((option) => option.value === mood) ? mood : null;
 }
 
 const styles = StyleSheet.create({
@@ -145,10 +233,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
+    ...screenScrollContent,
     gap: spacing.lg,
-    paddingVertical: spacing.lg,
   },
-  header: {
+  editBanner: {
+    backgroundColor: colors.roseTint,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(231, 106, 138, 0.2)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: 2,
+  },
+  section: {
     gap: spacing.sm,
+  },
+  sectionHeader: {
+    gap: 2,
+    paddingHorizontal: spacing.xs,
+  },
+  sectionTitle: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontSize: 11,
+  },
+  wellnessBlock: {
+    gap: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  symptomsBlock: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  actionButton: {
+    flex: 1,
   },
 });

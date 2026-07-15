@@ -9,7 +9,13 @@ import { InsightCard, InsightEmptyState } from './InsightCard';
 import { RangeBar } from './RangeBar';
 
 /** Cycle-length trend: average + regular/irregular, from server-side stats. */
-export function CycleLengthCard({ stats }: { stats: CycleLengthStats | undefined }) {
+export function CycleLengthCard({
+  stats,
+  compact = false,
+}: {
+  stats: CycleLengthStats | undefined;
+  compact?: boolean;
+}) {
   const c = colors;
 
   const enough =
@@ -22,7 +28,7 @@ export function CycleLengthCard({ stats }: { stats: CycleLengthStats | undefined
 
   if (!enough) {
     return (
-      <InsightCard title="Cycle length">
+      <InsightCard title="Cycle length" compact={compact}>
         <InsightEmptyState message="Log at least two periods and we’ll show your cycle-length trend." />
       </InsightCard>
     );
@@ -31,9 +37,11 @@ export function CycleLengthCard({ stats }: { stats: CycleLengthStats | undefined
   const regular = stats.spread! <= IRREGULAR_SPREAD_DAYS;
 
   return (
-    <InsightCard title="Cycle length">
+    <InsightCard title="Cycle length" compact={compact}>
       <View style={styles.headerRow}>
-        <Text style={[typography.h1, { color: c.text }]}>{stats.avg_length} days</Text>
+        <Text style={[compact ? typography.bodyMedium : typography.h1, { color: c.text }]}>
+          {stats.avg_length} days
+        </Text>
         <View style={[styles.badge, { backgroundColor: regular ? c.success : c.warning }]}>
           <Text style={[typography.caption, styles.badgeText, { color: c.primaryText }]}>
             {regular ? 'Fairly regular' : 'Irregular'}

@@ -1,11 +1,21 @@
+import { format } from 'date-fns';
 import { z } from 'zod';
+
+import {
+  FUTURE_DATE_MESSAGE,
+  isFutureDate,
+  isPeriodTooLong,
+  PERIOD_TOO_LONG_MESSAGE,
+} from './periodBounds';
 
 /** YYYY-MM-DD calendar date. */
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a valid date');
 
+const todayIso = () => format(new Date(), 'yyyy-MM-dd');
+
 /**
  * Log/edit a period. end_date is optional (ongoing period) but, when present, must not
- * fall before start_date.
+ * fall before start_date. Bleeding length is capped at a realistic maximum.
  */
 export const periodSchema = z
   .object({
@@ -15,6 +25,18 @@ export const periodSchema = z
   })
   .refine((v) => !v.end_date || v.end_date >= v.start_date, {
     message: 'End date cannot be before the start date',
+    path: ['end_date'],
+  })
+  .refine((v) => !isFutureDate(v.start_date, todayIso()), {
+    message: FUTURE_DATE_MESSAGE,
+    path: ['start_date'],
+  })
+  .refine((v) => !v.end_date || !isFutureDate(v.end_date, todayIso()), {
+    message: FUTURE_DATE_MESSAGE,
+    path: ['end_date'],
+  })
+  .refine((v) => !isPeriodTooLong(v.start_date, v.end_date ?? null, todayIso()), {
+    message: PERIOD_TOO_LONG_MESSAGE,
     path: ['end_date'],
   });
 export type PeriodForm = z.infer<typeof periodSchema>;

@@ -26,6 +26,15 @@ export const typography = {
   captionLight: { fontFamily: fontFamily.light, fontSize: 13, lineHeight: 18 },
   button: { fontFamily: fontFamily.semibold, fontSize: 16, lineHeight: 20 },
 
+  /** Uppercase grouped-section label (Settings, Profile, Analytics). */
+  sectionEyebrow: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  } satisfies TextStyle,
+
   // Backwards-compatible aliases.
   title: { fontFamily: fontFamily.semibold, fontSize: 32, lineHeight: 38 },
   heading: { fontFamily: fontFamily.medium, fontSize: 20, lineHeight: 26 },

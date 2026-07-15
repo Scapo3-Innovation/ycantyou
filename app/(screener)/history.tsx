@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HistoryList } from '@/features/screener/components/HistoryList';
 import { useScreenerHistory } from '@/features/screener/queries';
-import { colors, spacing } from '@/theme';
+import { screenScrollContent, spacing } from '@/theme';
 
 export default function ScreenerHistoryScreen() {
   const router = useRouter();
-  const c = colors;
 
   const { data: results = [], isLoading, isError, refetch } = useScreenerHistory();
 
@@ -20,6 +20,12 @@ export default function ScreenerHistoryScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScreenHeader
+          title="Past results"
+          subtitle="Previous screener attempts — not diagnoses."
+          onBack={() => router.back()}
+        />
+
         {isError ? (
           <ErrorState onRetry={() => void refetch()} />
         ) : (
@@ -41,10 +47,7 @@ export default function ScreenerHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
+  scroll: screenScrollContent,
   actions: {
     gap: spacing.sm,
     marginTop: spacing.md,

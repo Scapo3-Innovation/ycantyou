@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatDistanceToNowStrict, parseISO } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -10,18 +9,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { TextField } from '@/components/ui/TextField';
 import { CommentItem } from '@/features/community/components/CommentItem';
+import { IncognitoToggle } from '@/features/community/components/IncognitoToggle';
+import { PostCard } from '@/features/community/components/PostCard';
+import { COMMUNITY_DISCLAIMER } from '@/features/community/constants';
 import { presentModerationMenu, presentReportReasons } from '@/features/community/moderation';
 import {
   useAddComment,
@@ -29,14 +27,14 @@ import {
   useDeleteComment,
   useDeletePost,
   useReport,
+  useToggleCommentLike,
+  useToggleDislike,
   useToggleLike,
 } from '@/features/community/mutations';
 import { usePostDetail } from '@/features/community/queries';
 import type { FeedPost, PostComment } from '@/features/community/types';
 import { commentSchema } from '@/features/community/validation';
 import { colors, spacing, typography } from '@/theme';
-
-const timeAgo = (iso: string) => formatDistanceToNowStrict(parseISO(iso), { addSuffix: true });
 
 export default function PostDetailScreen() {
   const router = useRouter();
@@ -45,6 +43,8 @@ export default function PostDetailScreen() {
 
   const { data, isLoading } = usePostDetail(postId);
   const like = useToggleLike();
+  const dislike = useToggleDislike();
+  const commentLike = useToggleCommentLike(postId);
   const report = useReport();
   const block = useBlockUser();
   const deletePost = useDeletePost();
@@ -52,6 +52,7 @@ export default function PostDetailScreen() {
   const addComment = useAddComment(postId);
 
   const [comment, setComment] = useState('');
+  const [commentAnonymous, setCommentAnonymous] = useState(true);
 
   function onPostMenu(post: FeedPost) {
     presentModerationMenu({
@@ -75,11 +76,7 @@ export default function PostDetailScreen() {
       onDelete: () =>
         Alert.alert('Delete post', 'This removes your post for everyone.', [
           { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => deletePost.mutate(post.id, { onSuccess: () => router.back() }),
-          },
+          { text: 'Delete', style: 'destructive', onPress: () => deletePost.mutate(post.id, { onSuccess: () => router.back() }) },
         ]),
     });
   }
@@ -110,108 +107,129 @@ export default function PostDetailScreen() {
   function onSend() {
     const parsed = commentSchema.safeParse({ body: comment });
     if (!parsed.success) return;
-    addComment.mutate(parsed.data.body, { onSuccess: () => setComment('') });
+    addComment.mutate(
+      { body: parsed.data.body, is_anonymous: commentAnonymous },
+      { onSuccess: () => setComment('') },
+    );
   }
 
   if (isLoading) return <LoadingScreen />;
 
   if (!data) {
     return (
-      <Screen>
-        <ScreenHeader onBack={() => router.back()} />
+      <Screen edgeToEdge>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={[typography.bodyMedium, { color: colors.text }]}>Post</Text>
+          <View style={styles.topSide} />
+        </View>
         <EmptyState icon="chatbubble-outline" title="Post not found" message="It may have been removed." />
       </Screen>
     );
   }
 
   const { post, comments } = data;
+  const canReply = comment.trim().length > 0 && !addComment.isPending;
 
   return (
-    <Screen>
+    <Screen edgeToEdge>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={[typography.bodyMedium, { color: colors.text }]}>Post</Text>
+          <View style={styles.topSide} />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <ScreenHeader onBack={() => router.back()} />
+          <PostCard
+            post={post}
+            variant="detail"
+            interactive={false}
+            onToggleLike={() => like.mutate({ postId: post.id, liked: post.likedByMe })}
+            onToggleDislike={() =>
+              dislike.mutate({ postId: post.id, disliked: post.dislikedByMe })
+            }
+            onMenu={() => onPostMenu(post)}
+          />
 
-          <Card>
-            <View style={styles.rowBetween}>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+
+          <View style={styles.repliesHeader}>
+            <Text style={[typography.bodyMedium, { color: colors.text }]}>
+              Replies
+            </Text>
+            {post.commentCount > 0 ? (
               <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {post.isOwn ? 'You' : 'Community member'} · {timeAgo(post.created_at)}
+                {post.commentCount}
               </Text>
-              <Pressable
-                onPress={() => onPostMenu(post)}
-                accessibilityRole="button"
-                accessibilityLabel="Post options"
-                hitSlop={8}>
-                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            {post.title ? (
-              <Text style={[typography.h2, { color: colors.text }]}>{post.title}</Text>
             ) : null}
-            <Text style={[typography.body, { color: colors.text }]}>{post.body}</Text>
-
-            {post.tags.length > 0 ? (
-              <View style={styles.tags}>
-                {post.tags.map((tag) => (
-                  <Chip key={tag} label={tag} />
-                ))}
-              </View>
-            ) : null}
-
-            <Pressable
-              onPress={() => like.mutate({ postId: post.id, liked: post.likedByMe })}
-              accessibilityRole="button"
-              accessibilityLabel={post.likedByMe ? 'Unlike' : 'Like'}
-              style={styles.like}
-              hitSlop={8}>
-              <Ionicons
-                name={post.likedByMe ? 'heart' : 'heart-outline'}
-                size={20}
-                color={post.likedByMe ? colors.primary : colors.textMuted}
-              />
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {post.likeCount}
-              </Text>
-            </Pressable>
-          </Card>
-
-          <Text style={[typography.h2, { color: colors.text }]}>
-            Comments ({post.commentCount})
-          </Text>
+          </View>
 
           {comments.length === 0 ? (
-            <Text style={[typography.body, { color: colors.textMuted }]}>
-              No comments yet. Start the conversation — kindly.
+            <Text style={[typography.body, styles.emptyReplies, { color: colors.textMuted }]}>
+              No replies yet. Be supportive — not medical advice.
             </Text>
           ) : (
-            <Card>
-              {comments.map((c, i) => (
+            <View style={styles.replies}>
+              {comments.map((c) => (
                 <View key={c.id}>
-                  {i > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
-                  <CommentItem comment={c} onMenu={() => onCommentMenu(c)} />
+                  <CommentItem
+                    comment={c}
+                    onMenu={() => onCommentMenu(c)}
+                    onToggleLike={() =>
+                      commentLike.mutate({ commentId: c.id, liked: c.likedByMe })
+                    }
+                  />
+                  <View style={[styles.replyDivider, { backgroundColor: colors.border }]} />
                 </View>
               ))}
-            </Card>
+            </View>
           )}
+
+          <Text style={[typography.caption, styles.disclaimer, { color: colors.textFaint }]}>
+            {COMMUNITY_DISCLAIMER}
+          </Text>
         </ScrollView>
 
-        <View style={[styles.composer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
-          <View style={styles.composerField}>
-            <TextField
-              label=""
+        <View
+          style={[
+            styles.composer,
+            { borderTopColor: colors.border, backgroundColor: colors.background },
+          ]}>
+          <IncognitoToggle value={commentAnonymous} onChange={setCommentAnonymous} />
+          <View style={styles.composerRow}>
+            <TextInput
               value={comment}
               onChangeText={setComment}
-              placeholder="Add a supportive comment…"
+              placeholder="Post your reply"
+              placeholderTextColor={colors.textFaint}
               multiline
+              style={[styles.replyInput, { color: colors.text }]}
             />
+            <Pressable
+              onPress={onSend}
+              disabled={!canReply}
+              accessibilityRole="button"
+              accessibilityLabel="Reply"
+              style={[styles.replyBtn, !canReply && styles.replyBtnDisabled]}>
+              <Text
+                style={[
+                  typography.bodyMedium,
+                  { color: canReply ? colors.primary : colors.textFaint },
+                ]}>
+                Reply
+              </Text>
+            </Pressable>
           </View>
-          <Button label="Send" onPress={onSend} loading={addComment.isPending} disabled={!comment.trim()} />
         </View>
       </KeyboardAvoidingView>
     </Screen>
@@ -222,36 +240,73 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
-  rowBetween: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  topSide: {
+    width: 22,
   },
-  like: {
+  scroll: {
+    paddingBottom: spacing.xl,
+  },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth * 4,
+    backgroundColor: colors.surfaceAlt,
+  },
+  repliesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  divider: {
+  emptyReplies: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  replies: {
+    paddingHorizontal: spacing.lg,
+  },
+  replyDivider: {
     height: StyleSheet.hairlineWidth,
-    marginVertical: spacing.md,
+    marginLeft: 40,
+  },
+  disclaimer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
   },
   composer: {
     gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  composerField: {
-    // Lets the multiline field grow a little without pushing the button off-screen.
+  composerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  replyInput: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    maxHeight: 100,
+    paddingVertical: spacing.sm,
+    fontFamily: typography.body.fontFamily,
+  },
+  replyBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  replyBtnDisabled: {
+    opacity: 0.5,
   },
 });

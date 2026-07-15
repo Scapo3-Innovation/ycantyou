@@ -13,7 +13,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '@/features/content/constants';
 import { useCategories } from '@/features/content/queries';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, fullScreenScrollContent, spacing, typography } from '@/theme';
 
 export default function LearnScreen() {
   const router = useRouter();
@@ -22,23 +22,28 @@ export default function LearnScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenHeader subtitle="Plain-language guides about PCOS and your health." />
+        <ScreenHeader
+          title="Learn"
+          subtitle="Plain-language guides about PCOS and your health."
+        />
 
         <Pressable
           onPress={() => router.push('/(tabs)/learn/search')}
           accessibilityRole="button"
           accessibilityLabel="Search articles"
-          style={[styles.searchBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
-          <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+          style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="search-outline" size={18} color={colors.secondary} />
           <Text style={[typography.body, { color: colors.textMuted }]}>Search articles</Text>
         </Pressable>
 
-        <ListItem
-          title="Saved articles"
-          subtitle="Your bookmarks"
-          leftIcon="bookmark-outline"
-          onPress={() => router.push('/(tabs)/learn/bookmarks')}
-        />
+        <Card style={styles.listCard}>
+          <ListItem
+            title="Saved articles"
+            subtitle="Your bookmarks"
+            leftIcon="bookmark-outline"
+            onPress={() => router.push('/(tabs)/learn/bookmarks')}
+          />
+        </Card>
 
         <SectionHeader title="Topics" />
 
@@ -47,7 +52,7 @@ export default function LearnScreen() {
         ) : categories.length === 0 ? (
           <EmptyState icon="book-outline" title="No topics yet" message="Check back soon." />
         ) : (
-          <Card>
+          <Card style={styles.listCard}>
             {categories.map((category, i) => (
               <Fragment key={category.id}>
                 {i > 0 ? <Divider /> : null}
@@ -71,17 +76,18 @@ export default function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
+  scroll: fullScreenScrollContent,
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     minHeight: 48,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.control,
+    borderRadius: radius.lg,
     borderWidth: 1,
+  },
+  listCard: {
+    padding: 0,
+    overflow: 'hidden',
   },
 });

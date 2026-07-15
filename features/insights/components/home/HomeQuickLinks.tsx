@@ -3,15 +3,15 @@ import { Divider } from '@/components/ui/Divider';
 import { ListItem } from '@/components/ui/ListItem';
 import { RISK_BAND_LABEL } from '@/features/screener/constants';
 import type { ScreenerResult } from '@/types/database';
+import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
+import { typography } from '@/theme/typography';
 import { StyleSheet, Text, View } from 'react-native';
-
-import { colors, spacing, typography } from '@/theme';
 
 type HomeQuickLinksProps = {
   lastScreener: ScreenerResult | undefined;
   logsThisWeek: number;
   onCalendar: () => void;
-  onLearn: () => void;
   onCommunity: () => void;
   onScreener: () => void;
   onScreenerHistory: () => void;
@@ -22,7 +22,6 @@ export function HomeQuickLinks({
   lastScreener,
   logsThisWeek,
   onCalendar,
-  onLearn,
   onCommunity,
   onScreener,
   onScreenerHistory,
@@ -53,15 +52,8 @@ export function HomeQuickLinks({
         />
         <Divider />
         <ListItem
-          title="Learn"
-          subtitle="Plain-language PCOS guides"
-          leftIcon="book-outline"
-          onPress={onLearn}
-        />
-        <Divider />
-        <ListItem
           title="Community"
-          subtitle="Connect with others"
+          subtitle="Ask doubts and share feelings — optional anonymity"
           leftIcon="people-outline"
           onPress={onCommunity}
         />

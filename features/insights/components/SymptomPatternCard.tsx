@@ -7,19 +7,25 @@ import type { SymptomInsight } from '../types';
 import { InsightCard, InsightEmptyState } from './InsightCard';
 
 /** Symptom-by-phase patterns, described from the user's own logs only. */
-export function SymptomPatternCard({ insights }: { insights: SymptomInsight[] }) {
+export function SymptomPatternCard({
+  insights,
+  compact = false,
+}: {
+  insights: SymptomInsight[];
+  compact?: boolean;
+}) {
   const c = colors;
 
   if (insights.length === 0) {
     return (
-      <InsightCard title="Symptom patterns">
+      <InsightCard title="Symptom patterns" compact={compact}>
         <InsightEmptyState message="Keep logging symptoms across a few cycles and we’ll spot patterns by cycle phase." />
       </InsightCard>
     );
   }
 
   return (
-    <InsightCard title="Symptom patterns">
+    <InsightCard title="Symptom patterns" compact={compact}>
       <View style={styles.list}>
         {insights.map((insight) => {
           const share = insight.occurrences / insight.total;

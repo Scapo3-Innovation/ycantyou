@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
+import '@/lib/cryptoPolyfill';
+
 /**
  * Supabase client.
  *
@@ -20,11 +22,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+/** Hostname from EXPO_PUBLIC_SUPABASE_URL — used for dev connectivity hints. */
+export function getSupabaseHost(): string {
+  try {
+    return new URL(supabaseUrl).hostname;
+  } catch {
+    return supabaseUrl;
+  }
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: 'pkce',
   },
 });

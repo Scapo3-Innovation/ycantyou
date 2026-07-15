@@ -27,7 +27,7 @@ export function ListItem({ title, subtitle, leftIcon, right, onPress }: ListItem
           <Text style={[typography.caption, { color: colors.textMuted }]}>{subtitle}</Text>
         ) : null}
       </View>
-      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textFaint} /> : null)}
+      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.secondary} /> : null)}
     </>
   );
 
@@ -47,12 +47,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.roseTint,
     alignItems: 'center',
     justifyContent: 'center',
   },

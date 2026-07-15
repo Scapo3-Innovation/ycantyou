@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -9,31 +8,35 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { HeroBanner } from '@/components/ui/HeroBanner';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { PromiseList } from '@/components/ui/PromiseList';
 import { Screen, screenBodyPadding } from '@/components/ui/Screen';
+import { ScrollHint } from '@/components/ui/ScrollHint';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasHealthDataConsent, recordConsent } from '@/features/onboarding/api';
-import { CONSENT_SECTIONS } from '@/features/onboarding/consentCopy';
-import { PRIVACY_POLICY_URL } from '@/features/onboarding/constants';
+import {
+  CONSENT_BLOCKS,
+  CONSENT_CHECKBOX_LABEL,
+  CONSENT_INTRO,
+} from '@/features/onboarding/consentCopy';
+import { ConsentSummary } from '@/features/onboarding/components/ConsentSummary';
 import { onboardingImages } from '@/features/onboarding/images';
 import { analytics } from '@/lib/analytics';
 import { colors, spacing, typography } from '@/theme';
 
+const CONSENT_HERO_HEIGHT = 200;
 const SCROLL_END_THRESHOLD = 48;
 
 export default function ConsentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id;
   const c = colors;
 
-  const [checking, setChecking] = useState(true);
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -42,22 +45,24 @@ export default function ConsentScreen() {
   const [contentHeight, setContentHeight] = useState(0);
 
   useEffect(() => {
-    let mounted = true;
     if (!userId) return;
-    hasHealthDataConsent(userId)
-      .then((exists) => {
-        if (!mounted) return;
-        if (exists) {
+
+    let mounted = true;
+
+    const timer = setTimeout(() => {
+      void hasHealthDataConsent(userId)
+        .then((exists) => {
+          if (!mounted || !exists) return;
           router.replace('/(onboarding)/details');
-        } else {
-          setChecking(false);
-        }
-      })
-      .catch(() => {
-        if (mounted) setChecking(false);
-      });
+        })
+        .catch(() => {
+          /* Show consent UI — user can still proceed */
+        });
+    }, 0);
+
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
   }, [userId, router]);
 
@@ -65,7 +70,6 @@ export default function ConsentScreen() {
     setReachedBottom((prev) => (prev ? prev : true));
   }, []);
 
-  // Short screens: if everything fits without scrolling, allow consent once laid out.
   useEffect(() => {
     if (viewportHeight > 0 && contentHeight > 0 && contentHeight <= viewportHeight + SCROLL_END_THRESHOLD) {
       markReachedBottom();
@@ -93,116 +97,85 @@ export default function ConsentScreen() {
     }
   }
 
-  if (checking) return <LoadingScreen />;
-
   const canConsent = reachedBottom;
 
   return (
     <Screen edgeToEdge>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
-        onContentSizeChange={(_, height) => setContentHeight(height)}>
-        <HeroBanner
-          image={onboardingImages.privacy}
-          title="Your privacy & consent"
-          subtitle="Your health data stays yours — we only use what you choose to share."
-        />
+      <View style={styles.flex}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing.xxl }]}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
+          onContentSizeChange={(_, height) => setContentHeight(height)}>
+          <HeroBanner
+            image={onboardingImages.privacy}
+            compact
+            photoHeight={CONSENT_HERO_HEIGHT}
+            topInset={insets.top}
+          />
 
-        <View style={[styles.body, screenBodyPadding]}>
-          <Text style={[typography.body, { color: c.text }]}>
-            This app helps you understand and manage your menstrual and PCOS-related health — your
-            cycle, symptoms, and goals. Please read the summary below before giving consent.
-          </Text>
-
-          <PromiseList />
-
-          <View style={styles.sections}>
-            {CONSENT_SECTIONS.map((section) => (
-              <Card key={section.title}>
-                <Text style={[typography.bodyMedium, { color: c.text }]}>{section.title}</Text>
-                {section.paragraphs.map((paragraph) => (
-                  <Text
-                    key={paragraph}
-                    style={[typography.body, styles.paragraph, { color: c.textMuted }]}>
-                    {paragraph}
-                  </Text>
-                ))}
-              </Card>
-            ))}
-          </View>
-
-          <Text style={[typography.caption, { color: c.textMuted }]}>
-            Under India&apos;s DPDP Act, your consent is explicit and revocable. You can withdraw it
-            later from your profile.
-          </Text>
-
-          <Text
-            style={[typography.body, styles.link, { color: c.primary }]}
-            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
-            accessibilityRole="link">
-            Read the full privacy policy
-          </Text>
-
-          <View style={styles.consentActions}>
-            {!canConsent ? (
-              <Text style={[typography.caption, styles.scrollHint, { color: c.textMuted }]}>
-                Scroll to the bottom to enable consent
+          <View style={[styles.body, screenBodyPadding]}>
+            <View style={styles.header}>
+              <Text style={[typography.h1, { color: c.text }]}>Privacy & consent</Text>
+              <Text style={[typography.body, styles.intro, { color: c.textMuted }]}>
+                {CONSENT_INTRO}
               </Text>
-            ) : null}
+            </View>
 
-            <Checkbox
-              checked={agreed}
-              onChange={setAgreed}
-              disabled={!canConsent}
-              label="I consent to the processing of my health data as described above."
-            />
+            <ConsentSummary blocks={CONSENT_BLOCKS} />
 
-            {error ? (
-              <Text style={[typography.caption, { color: c.danger }]}>{error}</Text>
-            ) : null}
+            <View style={styles.footer}>
+              <Checkbox
+                checked={agreed}
+                onChange={setAgreed}
+                disabled={!canConsent}
+                label={CONSENT_CHECKBOX_LABEL}
+              />
 
-            <Button
-              label="Continue"
-              onPress={onContinue}
-              disabled={!canConsent || !agreed}
-              loading={submitting}
-            />
+              {error ? (
+                <Text style={[typography.caption, { color: c.danger }]}>{error}</Text>
+              ) : null}
+
+              <Button
+                label="Agree and continue"
+                onPress={onContinue}
+                disabled={!canConsent || !agreed}
+                loading={submitting}
+              />
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+
+        <ScrollHint visible={!reachedBottom} bottomInset={insets.bottom} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   scroll: {
-    paddingBottom: spacing.xxl,
+    flexGrow: 1,
   },
   body: {
-    gap: spacing.lg,
+    gap: spacing.xl,
     paddingTop: spacing.lg,
   },
-  sections: {
-    gap: spacing.md,
+  header: {
+    gap: spacing.sm,
   },
-  paragraph: {
-    marginTop: spacing.xs,
+  intro: {
+    lineHeight: 22,
   },
-  link: {
-    fontWeight: '600',
-  },
-  consentActions: {
-    gap: spacing.md,
+  footer: {
+    gap: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
-  },
-  scrollHint: {
-    textAlign: 'center',
-    fontWeight: '600',
   },
 });

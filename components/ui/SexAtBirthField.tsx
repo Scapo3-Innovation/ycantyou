@@ -10,23 +10,33 @@ type SexAtBirthFieldProps = {
   value: SexAtBirth | null;
   onChange: (value: SexAtBirth) => void;
   error?: string;
+  /** Selected option accent — profile screen uses teal. */
+  accent?: 'primary' | 'secondary';
+  /** Compact segments for profile and tight forms. */
+  size?: 'default' | 'compact';
 };
 
-/** Compact chip selector for sex assigned at birth. */
+/** Segmented selector for sex assigned at birth — matches TextField layout. */
 export function SexAtBirthField({
   label = 'Sex assigned at birth',
-  hint = 'Helps us tailor cycle and health insights.',
+  hint,
   value,
   onChange,
   error,
+  accent = 'primary',
+  size = 'default',
 }: SexAtBirthFieldProps) {
+  const accentColor = accent === 'secondary' ? colors.secondary : colors.primary;
+  const selectedBg = accent === 'secondary' ? colors.tealTint : colors.roseTint;
+  const compact = size === 'compact';
+
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[typography.captionMedium, { color: colors.textMuted }]}>{label}</Text>
       {hint ? (
-        <Text style={[typography.caption, { color: colors.textFaint }]}>{hint}</Text>
+        <Text style={[typography.caption, styles.hint, { color: colors.textFaint }]}>{hint}</Text>
       ) : null}
-      <View style={styles.chips}>
+      <View style={styles.segmentRow}>
         {SEX_AT_BIRTH_OPTIONS.map((option) => {
           const selected = option.value === value;
           return (
@@ -36,14 +46,21 @@ export function SexAtBirthField({
               accessibilityRole="radio"
               accessibilityState={{ selected }}
               style={[
-                styles.chip,
+                compact ? styles.segmentCompact : styles.segment,
                 {
-                  backgroundColor: selected ? colors.surfaceAlt : colors.surface,
-                  borderColor: selected ? colors.primary : colors.border,
+                  backgroundColor: selected ? selectedBg : colors.surface,
+                  borderColor: selected ? accentColor : colors.border,
                   borderWidth: selected ? 2 : 1,
                 },
               ]}>
-              <Text style={[typography.body, { color: colors.text }]}>{option.label}</Text>
+              <Text
+                style={[
+                  compact ? typography.captionMedium : typography.bodyMedium,
+                  styles.segmentLabel,
+                  { color: selected ? accentColor : colors.textMuted },
+                ]}>
+                {option.label}
+              </Text>
             </Pressable>
           );
         })}
@@ -61,19 +78,30 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.xs,
   },
-  label: {
-    fontWeight: '600',
+  hint: {
+    marginTop: -2,
   },
-  chips: {
+  segmentRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: spacing.sm,
-    paddingTop: spacing.xs,
   },
-  chip: {
-    minHeight: 44,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
+  segment: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.control,
+    alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  segmentCompact: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radius.control,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  segmentLabel: {
+    textAlign: 'center',
   },
 });

@@ -1,54 +1,63 @@
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
-import { ResultDisclaimer } from '@/features/screener/components/ResultDisclaimer';
-import { colors, spacing, typography } from '@/theme';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ScreenerIntroView } from '@/features/screener/components/ScreenerIntroView';
+import { colors, spacing } from '@/theme';
 
 export default function ScreenerIntroScreen() {
   const router = useRouter();
-  const c = colors;
+  const insets = useSafeAreaInsets();
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={[typography.body, { color: c.textMuted }]}>
-            A short checklist about signs commonly associated with PCOS. It takes a couple of
-            minutes and helps you decide whether to see a clinician — it cannot diagnose anything.
-          </Text>
-        </View>
+    <Screen style={styles.screen}>
+      <View style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <ScreenHeader
+            title="PCOS screener"
+            subtitle="Screening only — not a diagnosis"
+            onBack={() => router.back()}
+          />
+          <ScreenerIntroView />
+        </ScrollView>
 
-        <ResultDisclaimer />
-
-        <Text style={[typography.body, { color: c.textMuted }]}>
-          Your answers are private to you. We use them only to show your screening indication and to
-          build a report you can take to a doctor.
-        </Text>
-
-        <View style={styles.actions}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           <Button label="Start screener" onPress={() => router.push('/(screener)/questions')} />
           <Button
             label="View past results"
-            variant="secondary"
+            variant="ghost"
             onPress={() => router.push('/(screener)/history')}
           />
         </View>
-      </ScrollView>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
   scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
+    gap: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
-  header: {
+  footer: {
     gap: spacing.sm,
-  },
-  actions: {
-    gap: spacing.sm,
+    paddingTop: spacing.md,
+    paddingHorizontal: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
 });

@@ -1,9 +1,9 @@
-import { eachDayOfInterval, format, parseISO } from 'date-fns';
+import { eachDayOfInterval, format, parseISO, addDays } from 'date-fns';
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import type { Cycle, DailyLog } from '@/types/database';
 
-import { BLEEDING_FLOW_LEVELS } from './constants';
+import { BLEEDING_FLOW_LEVELS, ONGOING_PERIOD_CAP_DAYS } from './constants';
 import type { CyclePrediction } from './prediction';
 
 /** A single day's marking for react-native-calendars (markingType="custom"). */
@@ -20,11 +20,12 @@ export type CalendarPalette = {
   periodText: string;
   fertileBg: string;
   fertileText: string;
-  predictedBorder: string;
+  predictedBg: string;
   predictedText: string;
+  predictedDot: string;
   loggedDot: string;
-  todayRing: string;
-  selectedRing: string;
+  selectedBg: string;
+  selectedText: string;
   text: string;
 };
 
@@ -67,7 +68,9 @@ export function buildMarkedDates({
 
   // Logged period days from cycles (start → end, or just the start if ongoing).
   for (const cycle of cycles) {
-    const end = cycle.end_date ?? cycle.start_date;
+    const end =
+      cycle.end_date ??
+      format(addDays(parseISO(cycle.start_date), ONGOING_PERIOD_CAP_DAYS), 'yyyy-MM-dd');
     for (const day of daysInRange(cycle.start_date, end)) periodDays.add(day);
   }
 
@@ -117,24 +120,16 @@ export function buildMarkedDates({
       container.backgroundColor = palette.fertileBg;
       text = { color: palette.fertileText };
     } else if (predictedDays.has(day)) {
-      container.borderWidth = 1;
-      container.borderStyle = 'dashed';
-      container.borderColor = palette.predictedBorder;
+      container.backgroundColor = palette.predictedBg;
       text = { color: palette.predictedText, fontWeight: '600' };
+      dot = { marked: true, dotColor: palette.predictedDot };
     } else if (loggedDays.has(day)) {
       dot = { marked: true, dotColor: palette.loggedDot };
     }
 
-    // Today gets a subtle ring; the selected day a strong one (selected wins).
-    if (day === today && day !== selectedDate) {
-      container.borderWidth = Math.max(container.borderWidth ?? 0, 1);
-      container.borderStyle = 'solid';
-      container.borderColor = palette.todayRing;
-    }
-    if (day === selectedDate) {
-      container.borderWidth = 2;
-      container.borderStyle = 'solid';
-      container.borderColor = palette.selectedRing;
+    if (day === selectedDate && !periodDays.has(day)) {
+      container.backgroundColor = palette.selectedBg;
+      text = { color: palette.selectedText, fontWeight: '600' };
     }
 
     marked[day] = { customStyles: { container, text }, ...dot };

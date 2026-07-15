@@ -1,23 +1,23 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/ui/Button';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { HeaderTextButton, ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Screen } from '@/components/ui/Screen';
-import { buildMarkedDates, type CalendarPalette } from '@/features/tracking/calendar';
+import { buildDayCategories } from '@/features/tracking/dayCategories';
+import { CycleCalendarSection } from '@/features/tracking/components/CycleCalendarSection';
 import { CycleHistoryList } from '@/features/tracking/components/CycleHistoryList';
 import { PredictionCard } from '@/features/tracking/components/PredictionCard';
+import { TrackTodayStatusCard } from '@/features/tracking/components/TrackTodayStatusCard';
+import { hasDailyLogEntry } from '@/features/tracking/dailyLogSummary';
+import { isDateInExistingCycle } from '@/features/tracking/cycleOverlap';
 import { computeCyclePrediction } from '@/features/tracking/prediction';
-import {
-  notificationsSupported,
-  scheduleEstimatedPeriodReminder,
-} from '@/features/tracking/notifications';
-import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
-import { useReminders } from '@/features/tracking/useReminders';
-import { calendarFontTheme, colors, spacing, typography } from '@/theme';
+import { getDayStatus } from '@/features/tracking/periodStatus';
+import { TourAnchor } from '@/features/tour/TourAnchor';
+import { useCycles, useDailyLog, useRecentDailyLogs } from '@/features/tracking/queries';
+import { colors, screenScrollContent, spacing, typography } from '@/theme';
 
 export default function TrackScreen() {
   const router = useRouter();
@@ -25,52 +25,49 @@ export default function TrackScreen() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate] = useState(today);
+  const [calendarView, setCalendarView] = useState<'month' | 'year'>('month');
+  const [visibleMonth, setVisibleMonth] = useState(today);
+  const [calendarYear, setCalendarYear] = useState(() => parseISO(today).getFullYear());
 
   const { data: cycles = [], isError, refetch } = useCycles();
   const { data: dailyLogs = [] } = useRecentDailyLogs();
-  const reminders = useReminders();
+  const { data: todayLog } = useDailyLog(today);
 
   const prediction = useMemo(() => computeCyclePrediction(cycles), [cycles]);
-
-  const palette = useMemo<CalendarPalette>(
-    () => ({
-      periodBg: c.primary,
-      periodText: c.primaryText,
-      fertileBg: '#DCEFE6',
-      fertileText: c.text,
-      predictedBorder: c.primary,
-      predictedText: c.primary,
-      loggedDot: c.textMuted,
-      todayRing: c.textMuted,
-      selectedRing: c.primary,
-      text: c.text,
-    }),
-    [c],
+  const dayCategories = useMemo(
+    () => buildDayCategories(cycles, dailyLogs, prediction),
+    [cycles, dailyLogs, prediction],
   );
 
-  const markedDates = useMemo(
-    () => buildMarkedDates({ cycles, dailyLogs, prediction, selectedDate, today, palette }),
-    [cycles, dailyLogs, prediction, selectedDate, today, palette],
+  const todayStatus = useMemo(
+    () => getDayStatus(today, today, cycles, dailyLogs, prediction, dayCategories),
+    [today, cycles, dailyLogs, prediction, dayCategories],
   );
 
-  // Keep the estimated-period reminder in sync once reminders are on and a date exists.
-  useEffect(() => {
-    if (reminders.enabled && prediction.status === 'regular') {
-      void scheduleEstimatedPeriodReminder(prediction.predictedStart);
-    }
-  }, [reminders.enabled, prediction]);
+  const hasTodayLog = useMemo(() => hasDailyLogEntry(todayLog), [todayLog]);
+  const todayInLoggedPeriod = useMemo(
+    () => isDateInExistingCycle(cycles, today),
+    [cycles, today],
+  );
 
-  async function onToggleReminders() {
-    const ok = await reminders.setEnabled(!reminders.enabled);
-    if (!ok && !reminders.enabled) {
-      Alert.alert(
-        'Notifications off',
-        'Enable notifications for this app in your device settings to get reminders.',
-      );
+  function onCalendarDayPress(dateString: string) {
+    setSelectedDate(dateString);
+    setVisibleMonth(dateString);
+    setCalendarYear(parseISO(dateString).getFullYear());
+    if (calendarView === 'year') {
+      setCalendarView('month');
     }
   }
 
-  const selectedLabel = format(new Date(`${selectedDate}T00:00:00`), 'EEE, d MMM');
+  function toggleCalendarView() {
+    setCalendarView((mode) => {
+      const next = mode === 'month' ? 'year' : 'month';
+      if (next === 'year') {
+        setCalendarYear(parseISO(selectedDate).getFullYear());
+      }
+      return next;
+    });
+  }
 
   if (isError) {
     return (
@@ -83,60 +80,57 @@ export default function TrackScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Calendar
-          markingType="custom"
-          markedDates={markedDates}
-          onDayPress={(day) => setSelectedDate(day.dateString)}
-          enableSwipeMonths
-          theme={{
-            ...calendarFontTheme,
-            calendarBackground: c.background,
-            dayTextColor: c.text,
-            monthTextColor: c.text,
-            textDisabledColor: c.textMuted,
-            arrowColor: c.primary,
-            todayTextColor: c.primary,
-            textSectionTitleColor: c.textMuted,
-          }}
+        <ScreenHeader
+          onBack={() => router.push('/(tabs)')}
+          right={
+            <HeaderTextButton
+              label={calendarView === 'month' ? 'Year' : 'Month'}
+              onPress={toggleCalendarView}
+              accessibilityLabel={
+                calendarView === 'month' ? 'Show year view' : 'Show month view'
+              }
+            />
+          }
         />
 
-        <Legend />
-
-        <View style={styles.actions}>
-          <Button
-            label={`Log details · ${selectedLabel}`}
-            onPress={() =>
-              router.push({ pathname: '/(tabs)/track/day', params: { date: selectedDate } })
-            }
+        <TourAnchor id="tour-track-calendar">
+          <CycleCalendarSection
+            view={calendarView}
+            selectedDate={selectedDate}
+            today={today}
+            visibleMonth={visibleMonth}
+            onVisibleMonthChange={setVisibleMonth}
+            calendarYear={calendarYear}
+            onYearChange={setCalendarYear}
+            categories={dayCategories}
+            prediction={prediction}
+            onDayPress={onCalendarDayPress}
           />
-          <Button label="Log period" variant="secondary" onPress={() => router.push('/(tabs)/track/period')} />
-        </View>
+        </TourAnchor>
 
-        <PredictionCard prediction={prediction} />
+        <TrackTodayStatusCard
+          status={todayStatus}
+          todayLog={todayLog}
+          onOpenDay={() =>
+            router.push({ pathname: '/(tabs)/track/day', params: { date: today } })
+          }
+          onLogDetails={() =>
+            router.push({ pathname: '/(tabs)/track/day', params: { date: today } })
+          }
+          onLogPeriod={() => router.push('/(tabs)/track/period')}
+          showLogDetails={!hasTodayLog}
+          showLogPeriod={!todayInLoggedPeriod}
+        />
 
-        <View style={styles.section}>
-          <Text style={[typography.heading, { color: c.text }]}>Reminders</Text>
-          <Text style={[typography.caption, { color: c.textMuted }]}>
-            A gentle daily nudge to log, plus a heads-up before your estimated period. These are
-            on-device reminders.
-          </Text>
-          {notificationsSupported ? (
-            <Button
-              label={reminders.enabled ? 'Turn off daily reminder' : 'Turn on daily reminder'}
-              variant="secondary"
-              loading={reminders.busy || reminders.loading}
-              onPress={onToggleReminders}
-            />
-          ) : (
-            <Text style={[typography.caption, { color: c.textMuted }]}>
-              Reminders aren&apos;t available in Expo Go on Android — they&apos;ll work in a
-              development build.
-            </Text>
-          )}
-        </View>
+        <PredictionCard
+          prediction={prediction}
+          onImproveAccuracy={() =>
+            router.push({ pathname: '/(tabs)/track/day', params: { date: today } })
+          }
+        />
 
         <View style={styles.section}>
-          <Text style={[typography.heading, { color: c.text }]}>Cycle history</Text>
+          <Text style={[typography.bodyMedium, { color: c.text }]}>Cycle history</Text>
           <CycleHistoryList
             cycles={cycles}
             onEdit={(cycle) =>
@@ -149,58 +143,9 @@ export default function TrackScreen() {
   );
 }
 
-/** Small color key for the calendar marks. */
-function Legend() {
-  const c = colors;
-  const items = [
-    { color: c.primary, label: 'Period' },
-    { color: '#DCEFE6', label: 'Fertile (est.)' },
-  ];
-  return (
-    <View style={styles.legend}>
-      {items.map((item) => (
-        <View key={item.label} style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-          <Text style={[typography.caption, { color: c.textMuted }]}>{item.label}</Text>
-        </View>
-      ))}
-      <View style={styles.legendItem}>
-        <View style={[styles.legendDot, styles.legendDashed, { borderColor: c.primary }]} />
-        <Text style={[typography.caption, { color: c.textMuted }]}>Next period (est.)</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
-  actions: {
-    gap: spacing.sm,
-  },
+  scroll: screenScrollContent,
   section: {
     gap: spacing.sm,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  legendDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-  },
-  legendDashed: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    backgroundColor: 'transparent',
   },
 });

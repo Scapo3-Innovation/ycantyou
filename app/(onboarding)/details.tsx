@@ -14,17 +14,26 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DateOfBirthField } from '@/components/ui/DateOfBirthField';
 import { HeroBanner } from '@/components/ui/HeroBanner';
 import { OptionGroup } from '@/components/ui/OptionGroup';
+import { PartnerCodeField } from '@/components/ui/PartnerCodeField';
 import { SexAtBirthField } from '@/components/ui/SexAtBirthField';
 import { TextField } from '@/components/ui/TextField';
 import { screenBodyPadding } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { completeOnboarding } from '@/features/onboarding/api';
+import {
+  completePartnerOnboarding,
+  completePrimaryOnboarding,
+} from '@/features/onboarding/api';
 import { ageFromDob } from '@/features/onboarding/ageFromDob';
-import { GOALS, GOAL_FOCUS_FOOTNOTE } from '@/features/onboarding/constants';
+import {
+  GOALS,
+  GOAL_FOCUS_FOOTNOTE,
+  ONBOARDING_PATH_OPTIONS,
+} from '@/features/onboarding/constants';
 import { onboardingImages } from '@/features/onboarding/images';
 import {
   onboardingBasicsSchema,
   onboardingGoalSchema,
+  onboardingPartnerCodeSchema,
 } from '@/features/onboarding/validation';
 import { profileQueryKey } from '@/features/profile/useProfile';
 import { analytics } from '@/lib/analytics';
@@ -32,12 +41,20 @@ import { colors, radius, spacing, typography } from '@/theme';
 import type { Goal, SexAtBirth } from '@/types/database';
 
 type BasicsErrors = Partial<Record<'full_name' | 'dob' | 'sex_assigned_at_birth', string>>;
-type GoalErrors = Partial<Record<'goal', string>>;
+type Step2Errors = Partial<Record<'goal' | 'partner_code', string>>;
 
-const STEPS = ['basics', 'goal'] as const;
+type OnboardingStep = 'basics' | 'path' | 'goal' | 'code';
+
+const GOAL_HERO_HEIGHT = 176;
 
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? '';
+}
+
+function stepAfterBasics(sex: SexAtBirth): OnboardingStep {
+  if (sex === 'male') return 'code';
+  if (sex === 'prefer_not_to_say') return 'path';
+  return 'goal';
 }
 
 export default function DetailsScreen() {
@@ -47,13 +64,14 @@ export default function DetailsScreen() {
   const insets = useSafeAreaInsets();
   const c = colors;
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<OnboardingStep>('basics');
   const [fullName, setFullName] = useState('');
   const [sexAtBirth, setSexAtBirth] = useState<SexAtBirth | null>(null);
   const [dob, setDob] = useState('');
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [partnerCode, setPartnerCode] = useState('');
   const [basicsErrors, setBasicsErrors] = useState<BasicsErrors>({});
-  const [goalErrors, setGoalErrors] = useState<GoalErrors>({});
+  const [step2Errors, setStep2Errors] = useState<Step2Errors>({});
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,50 +81,46 @@ export default function DetailsScreen() {
     return name ? `Nice to meet you, ${name}!` : null;
   }, [fullName]);
 
-  const isLastStep = step === STEPS.length - 1;
+  const stepIndex = step === 'basics' ? 0 : 1;
+  const isFinishStep = step === 'goal' || step === 'code';
 
-  function onNext() {
-    if (step === 0) {
-      const parsed = onboardingBasicsSchema.safeParse({
-        full_name: fullName,
-        sex_assigned_at_birth: sexAtBirth,
-        dob,
-      });
-      if (!parsed.success) {
-        const next: BasicsErrors = {};
-        for (const issue of parsed.error.issues) {
-          const key = issue.path[0] as keyof BasicsErrors;
-          if (key && !next[key]) next[key] = issue.message;
-        }
-        setBasicsErrors(next);
-        return;
+  function onNextFromBasics() {
+    const parsed = onboardingBasicsSchema.safeParse({
+      full_name: fullName,
+      sex_assigned_at_birth: sexAtBirth,
+      dob,
+    });
+    if (!parsed.success) {
+      const next: BasicsErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof BasicsErrors;
+        if (key && !next[key]) next[key] = issue.message;
       }
-      setBasicsErrors({});
-      setStep(1);
+      setBasicsErrors(next);
       return;
     }
-
-    void onSubmit();
+    setBasicsErrors({});
+    setStep(stepAfterBasics(parsed.data.sex_assigned_at_birth));
   }
 
   function onBack() {
-    if (step > 0) setStep(step - 1);
+    if (step === 'basics') return;
+    if (step === 'path') {
+      setStep('basics');
+      return;
+    }
+    if (step === 'goal' || step === 'code') {
+      if (sexAtBirth === 'prefer_not_to_say') {
+        setStep('path');
+      } else {
+        setStep('basics');
+      }
+    }
   }
 
   async function onSubmit() {
     if (!userId) return;
     setSubmitError(undefined);
-
-    const parsed = onboardingGoalSchema.safeParse({ goal });
-    if (!parsed.success) {
-      const next: GoalErrors = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof GoalErrors;
-        if (key && !next[key]) next[key] = issue.message;
-      }
-      setGoalErrors(next);
-      return;
-    }
 
     const basics = onboardingBasicsSchema.safeParse({
       full_name: fullName,
@@ -114,25 +128,149 @@ export default function DetailsScreen() {
       dob,
     });
     if (!basics.success) {
-      setStep(0);
+      setStep('basics');
       return;
     }
 
-    setGoalErrors({});
     setSubmitting(true);
+
     try {
-      await completeOnboarding(userId, {
-        full_name: basics.data.full_name,
-        dob: basics.data.dob,
-        sex_assigned_at_birth: basics.data.sex_assigned_at_birth,
-        goal: parsed.data.goal,
-      });
-      analytics.track('onboarding_completed');
+      if (step === 'code') {
+        const parsed = onboardingPartnerCodeSchema.safeParse({ partner_code: partnerCode });
+        if (!parsed.success) {
+          const next: Step2Errors = {};
+          for (const issue of parsed.error.issues) {
+            const key = issue.path[0] as keyof Step2Errors;
+            if (key && !next[key]) next[key] = issue.message;
+          }
+          setStep2Errors(next);
+          setSubmitting(false);
+          return;
+        }
+        setStep2Errors({});
+        await completePartnerOnboarding(userId, {
+          ...basics.data,
+          partner_code: parsed.data.partner_code,
+        });
+        analytics.track('partner_code_redeemed');
+        analytics.track('onboarding_completed', { mode: 'partner' });
+      } else {
+        const parsed = onboardingGoalSchema.safeParse({ goal });
+        if (!parsed.success) {
+          const next: Step2Errors = {};
+          for (const issue of parsed.error.issues) {
+            const key = issue.path[0] as keyof Step2Errors;
+            if (key && !next[key]) next[key] = issue.message;
+          }
+          setStep2Errors(next);
+          setSubmitting(false);
+          return;
+        }
+        setStep2Errors({});
+        await completePrimaryOnboarding(userId, {
+          ...basics.data,
+          goal: parsed.data.goal,
+        });
+        analytics.track('onboarding_completed', { mode: 'primary' });
+      }
+
       await queryClient.invalidateQueries({ queryKey: profileQueryKey(userId) });
-    } catch {
-      setSubmitError('Could not save your details. Please try again.');
+    } catch (e) {
+      setSubmitError(
+        e instanceof Error ? e.message : 'Could not save your details. Please try again.',
+      );
       setSubmitting(false);
     }
+  }
+
+  function onPrimaryAction() {
+    if (step === 'basics') {
+      onNextFromBasics();
+      return;
+    }
+    if (isFinishStep) {
+      void onSubmit();
+    }
+  }
+
+  function renderSecondStep() {
+    if (step === 'path') {
+      return (
+        <>
+          <HeroBanner
+            image={onboardingImages.goals}
+            title="How will you use the app?"
+            subtitle="Pick the path that fits you."
+            compact
+            photoHeight={GOAL_HERO_HEIGHT}
+            topInset={insets.top}
+            copyBottomInset={0}
+          />
+          <View style={[styles.goalContent, screenBodyPadding]}>
+            <OptionGroup
+              label="Your path"
+              options={ONBOARDING_PATH_OPTIONS}
+              value={null}
+              onChange={(value) => setStep(value === 'partner' ? 'code' : 'goal')}
+              variant="compact"
+              hideLabel
+            />
+          </View>
+        </>
+      );
+    }
+
+    if (step === 'code') {
+      return (
+        <>
+          <HeroBanner
+            image={onboardingImages.basics}
+            title="Enter her partner code"
+            subtitle="She generates this from the Partner tab and shares it with you."
+            compact
+            topInset={insets.top}
+          />
+          <View style={[styles.goalContent, screenBodyPadding]}>
+            <PartnerCodeField
+              value={partnerCode}
+              onChange={setPartnerCode}
+              error={step2Errors.partner_code ?? submitError}
+            />
+          </View>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <HeroBanner
+          image={onboardingImages.goals}
+          title="What's your main goal?"
+          subtitle="Pick what we highlight first — change anytime in profile."
+          compact
+          photoHeight={GOAL_HERO_HEIGHT}
+          topInset={insets.top}
+          copyBottomInset={0}
+        />
+        <View style={[styles.goalContent, screenBodyPadding]}>
+          <OptionGroup
+            label="Your main goal"
+            options={GOALS}
+            value={goal}
+            onChange={setGoal}
+            error={step2Errors.goal}
+            variant="compact"
+            hideLabel
+          />
+          <Text style={[typography.caption, styles.goalFootnote, { color: c.textFaint }]}>
+            {GOAL_FOCUS_FOOTNOTE}
+          </Text>
+          {submitError ? (
+            <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
+          ) : null}
+        </View>
+      </>
+    );
   }
 
   return (
@@ -141,17 +279,7 @@ export default function DetailsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
         <View style={styles.container}>
-          {step > 0 ? (
-            <Pressable
-              onPress={onBack}
-              accessibilityRole="button"
-              hitSlop={8}
-              style={[styles.backRow, { paddingTop: insets.top + spacing.sm }]}>
-              <Text style={[typography.bodyMedium, { color: c.textMuted }]}>Back</Text>
-            </Pressable>
-          ) : null}
-
-          {step === 0 ? (
+          {step === 'basics' ? (
             <>
               <HeroBanner
                 image={onboardingImages.basics}
@@ -160,7 +288,6 @@ export default function DetailsScreen() {
                 compact
                 topInset={insets.top}
               />
-
               <ScrollView
                 style={styles.flex}
                 contentContainerStyle={styles.basicsScroll}
@@ -170,7 +297,6 @@ export default function DetailsScreen() {
                   {greeting ? (
                     <Text style={[typography.bodyMedium, { color: c.primary }]}>{greeting}</Text>
                   ) : null}
-
                   <TextField
                     label="Full name"
                     value={fullName}
@@ -181,90 +307,75 @@ export default function DetailsScreen() {
                     placeholder="Your name"
                     returnKeyType="next"
                   />
-
                   <SexAtBirthField
+                    label="Sex"
+                    hint="Helps us tailor cycle and health insights."
                     value={sexAtBirth}
                     onChange={setSexAtBirth}
                     error={basicsErrors.sex_assigned_at_birth}
                   />
-
-                  <View style={styles.dobBlock}>
-                    <DateOfBirthField
-                      label="Date of birth"
-                      value={dob}
-                      onChange={setDob}
-                      error={basicsErrors.dob}
-                    />
-                    {age != null ? (
-                      <Text style={[typography.bodyMedium, styles.ageLine, { color: c.secondary }]}>
-                        You&apos;re {age} years old
-                      </Text>
-                    ) : null}
-                  </View>
+                  <DateOfBirthField
+                    label="Date of birth"
+                    value={dob}
+                    onChange={setDob}
+                    error={basicsErrors.dob}
+                    placeholder="Tap to choose date"
+                  />
+                  {age != null ? (
+                    <Text style={[typography.captionMedium, styles.ageLine, { color: c.secondary }]}>
+                      You&apos;re {age} years old
+                    </Text>
+                  ) : null}
                 </View>
               </ScrollView>
             </>
           ) : (
-            <ScrollView
-              style={styles.flex}
-              contentContainerStyle={[styles.goalScroll, screenBodyPadding]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled">
-              <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-                <Text style={[typography.display, styles.title, { color: c.text }]}>
-                  What&apos;s your main goal?
-                </Text>
-                <Text style={[typography.body, { color: c.textMuted }]}>
-                  Pick what we highlight first. You can change this anytime in your profile.
-                </Text>
-              </View>
-
-              <OptionGroup
-                label="Your main goal"
-                options={GOALS}
-                value={goal}
-                onChange={setGoal}
-                error={goalErrors.goal}
-              />
-
-              <Text style={[typography.caption, styles.goalFootnote, { color: c.textFaint }]}>
-                {GOAL_FOCUS_FOOTNOTE}
-              </Text>
-
-              {submitError ? (
-                <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
-              ) : null}
-            </ScrollView>
+            renderSecondStep()
           )}
 
           <View style={[styles.footer, screenBodyPadding]}>
-            <View style={styles.dots}>
-              {STEPS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    i === step ? styles.dotActive : styles.dotInactive,
-                    { backgroundColor: i === step ? c.primary : c.border },
-                  ]}
-                />
-              ))}
+            <View style={styles.footerLeft}>
+              {step !== 'basics' ? (
+                <Pressable
+                  onPress={onBack}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={styles.backButton}>
+                  <Text style={[typography.bodyMedium, { color: c.textMuted }]}>Back</Text>
+                </Pressable>
+              ) : null}
+              <View style={styles.dots}>
+                {[0, 1].map((i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      i === stepIndex ? styles.dotActive : styles.dotInactive,
+                      { backgroundColor: i === stepIndex ? c.primary : c.border },
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
 
-            <Pressable
-              onPress={onNext}
-              disabled={submitting}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: submitting, busy: submitting }}
-              style={({ pressed }) => [
-                styles.nextButton,
-                (pressed || submitting) && styles.nextButtonPressed,
-                submitting && styles.nextButtonDisabled,
-              ]}>
-              <Text style={styles.nextLabel}>
-                {submitting ? 'Saving…' : isLastStep ? 'Finish' : 'Next'}
-              </Text>
-            </Pressable>
+            {step === 'path' ? (
+              <View style={styles.nextButtonPlaceholder} />
+            ) : (
+              <Pressable
+                onPress={onPrimaryAction}
+                disabled={submitting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: submitting, busy: submitting }}
+                style={({ pressed }) => [
+                  styles.nextButton,
+                  (pressed || submitting) && styles.nextButtonPressed,
+                  submitting && styles.nextButtonDisabled,
+                ]}>
+                <Text style={styles.nextLabel}>
+                  {submitting ? 'Saving…' : isFinishStep ? 'Finish' : 'Next'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -283,38 +394,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backRow: {
-    paddingHorizontal: spacing.xl,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
   basicsScroll: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-  },
-  form: {
-    gap: spacing.lg,
-  },
-  dobBlock: {
-    gap: spacing.sm,
-  },
-  ageLine: {
-    paddingLeft: spacing.xs,
-  },
-  header: {
-    gap: spacing.sm,
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
-  goalScroll: {
-    gap: spacing.lg,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  goalFootnote: {
+  form: {
+    gap: spacing.xl,
+  },
+  ageLine: {
     marginTop: -spacing.sm,
+  },
+  goalContent: {
+    flex: 1,
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  goalFootnote: {
     fontStyle: 'italic',
     lineHeight: 18,
   },
@@ -324,6 +420,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: spacing.lg,
     paddingTop: spacing.md,
+  },
+  footerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    flex: 1,
+  },
+  backButton: {
+    minHeight: 52,
+    justifyContent: 'center',
+    paddingRight: spacing.sm,
   },
   dots: {
     flexDirection: 'row',
@@ -348,6 +455,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  nextButtonPlaceholder: {
+    minWidth: 132,
+    minHeight: 52,
   },
   nextButtonPressed: {
     opacity: 0.85,

@@ -1,13 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
-import { ResultDisclaimer } from '@/features/screener/components/ResultDisclaimer';
-import { RiskBandIndicator } from '@/features/screener/components/RiskBandIndicator';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { RotterdamExplainer } from '@/features/screener/components/RotterdamExplainer';
+import { ScreenerResultHero } from '@/features/screener/components/ScreenerResultHero';
 import { useScreenerResult } from '@/features/screener/queries';
 import { generateAndShareReport } from '@/features/screener/report';
 import { useCycles, useRecentDailyLogs } from '@/features/tracking/queries';
@@ -15,8 +16,8 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function ScreenerResultScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const c = colors;
 
   const { data: result, isLoading } = useScreenerResult(sessionId ?? '');
   const { data: cycles = [] } = useCycles();
@@ -25,65 +26,101 @@ export default function ScreenerResultScreen() {
 
   if (isLoading) return <LoadingScreen />;
 
+  function onBack() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  }
+
   if (!result) {
     return (
       <Screen>
+        <ScreenHeader title="Your result" onBack={onBack} />
         <View style={styles.center}>
-          <Text style={[typography.body, { color: c.textMuted }]}>
-            We couldn’t load this result. Please try the screener again.
+          <Text style={[typography.body, { color: colors.textMuted }]}>
+            We couldn&apos;t load this result. Please try the screener again.
           </Text>
-          <Button label="Back to home" variant="secondary" onPress={() => router.replace('/(tabs)')} />
+          <Button label="Back to home" variant="ghost" onPress={() => router.replace('/(tabs)')} />
         </View>
       </Screen>
     );
   }
 
   async function onCreateReport() {
-    if (!result) return;
+    const current = result;
+    if (!current) return;
     setSharing(true);
     try {
-      const ok = await generateAndShareReport({ result, cycles, dailyLogs });
+      const ok = await generateAndShareReport({ result: current, cycles, dailyLogs });
       if (!ok) {
         Alert.alert('Sharing unavailable', 'Sharing is not available on this device.');
       }
-    } catch {
-      Alert.alert('Could not create report', 'Something went wrong generating the PDF. Please try again.');
+    } catch (err) {
+      if (__DEV__) {
+        console.warn('[screener] PDF generation failed', err);
+      }
+      Alert.alert(
+        'Could not create report',
+        'Something went wrong generating the PDF. Please try again.',
+      );
     } finally {
       setSharing(false);
     }
   }
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Disclaimer first and prominent — never let the band read as a diagnosis. */}
-        <ResultDisclaimer />
+    <Screen style={styles.screen}>
+      <View style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}>
+          <ScreenHeader
+            title="Your result"
+            subtitle="Screening indication — not a diagnosis"
+            onBack={onBack}
+          />
 
-        <RiskBandIndicator band={result.risk_band} />
+          <ScreenerResultHero band={result.risk_band} score={Number(result.score)} />
+          <RotterdamExplainer />
+        </ScrollView>
 
-        <RotterdamExplainer />
-
-        <View style={styles.actions}>
-          <Button label="Create doctor report (PDF)" onPress={onCreateReport} loading={sharing} />
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+          <Button
+            label="Create doctor report (PDF)"
+            onPress={() => void onCreateReport()}
+            loading={sharing}
+          />
           <Button
             label="View past results"
-            variant="secondary"
+            variant="ghost"
             onPress={() => router.replace('/(screener)/history')}
           />
-          <Button label="Back to home" variant="secondary" onPress={() => router.replace('/(tabs)')} />
         </View>
-      </ScrollView>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
+  screen: {
+    backgroundColor: colors.background,
   },
-  actions: {
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    gap: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  footer: {
     gap: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
   center: {
     flex: 1,

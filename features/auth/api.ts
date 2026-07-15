@@ -1,12 +1,17 @@
+import {
+  signInWithGoogleOAuth,
+  type GoogleSignInResult,
+} from '@/features/auth/googleOAuth';
 import { clearWelcomeSeen } from '@/features/onboarding/welcomeStorage';
 import { supabase } from '@/lib/supabase';
+
+/** Email OTP flow — sign in to an existing account or create a new one. */
+export type EmailAuthMode = 'sign-in' | 'sign-up';
 
 /**
  * Auth API — the single place that talks to Supabase Auth.
  *
- * Email 6-digit OTP is the only method wired up right now. Phone OTP and Google
- * OAuth are intentionally left as throwing stubs so the rest of the app (screens,
- * session context) is already structured to accept them without rework.
+ * Email OTP and Google OAuth are wired up. Phone OTP is still a stub.
  *
  * NOTE: never log the email, token, or session here — they are sensitive.
  */
@@ -14,20 +19,51 @@ import { supabase } from '@/lib/supabase';
 /**
  * Send a 6-digit OTP to the given email.
  *
- * We intentionally pass NO `emailRedirectTo`, and the Supabase email template is set to
- * send `{{ .Token }}` — so the user receives a typed 6-digit code, not a clickable magic
- * link. (`detectSessionInUrl: false` in lib/supabase.ts means a link would not be handled
- * anyway.) The code is verified by `verifyEmailOtp` below.
+ * We intentionally pass NO `emailRedirectTo`, and the Supabase email template should use
+ * `{{ .Token }}` — so the user receives a typed code, not a clickable magic link.
+ * OTP length is set in Supabase Dashboard → Authentication → Providers → Email → OTP length (use 6).
+ * (`detectSessionInUrl: false` in lib/supabase.ts means a link would not be handled anyway.)
  */
-export async function sendEmailOtp(email: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithOtp({ email });
+export async function sendEmailOtp(email: string, mode: EmailAuthMode = 'sign-up'): Promise<void> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: mode === 'sign-up' },
+  });
   if (error) throw error;
 }
 
-/** Verify the 6-digit email OTP. On success, supabase-js persists the session and emits an auth event. */
-export async function verifyEmailOtp(email: string, token: string): Promise<void> {
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+/**
+ * Create an account with email and password.
+ * If email confirmation is enabled in Supabase, returns `verify` so the user can enter the OTP.
+ */
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+): Promise<'verify' | 'signed-in'> {
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
+  return data.session ? 'signed-in' : 'verify';
+}
+
+/** Verify the 6-digit email OTP. On success, supabase-js persists the session and emits an auth event. */
+export async function verifyEmailOtp(
+  email: string,
+  token: string,
+  mode: EmailAuthMode = 'sign-in',
+): Promise<void> {
+  const type = mode === 'sign-up' ? 'signup' : 'email';
+  const { error } = await supabase.auth.verifyOtp({ email, token, type });
+  if (error) throw error;
+}
+
+/** Resend a sign-in OTP or sign-up confirmation code. */
+export async function resendEmailOtp(email: string, mode: EmailAuthMode): Promise<void> {
+  if (mode === 'sign-up') {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    return;
+  }
+  await sendEmailOtp(email, 'sign-in');
 }
 
 /**
@@ -40,8 +76,25 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
  * dashboard. Surfaced behind a DEV flag in the UI — hide before launch.
  */
 export async function signInAsGuest(): Promise<void> {
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    if (/anonymous|signups not allowed/i.test(error.message)) {
+      throw new Error(
+        'Guest sign-in is disabled in Supabase. Enable Anonymous sign-ins under Authentication → Providers.',
+      );
+    }
+    throw error;
+  }
+
+  if (data.session) return;
+
+  // Avoid auth lock deadlock — wait for onAuthStateChange to finish before getSession.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const { data: refreshed, error: refreshError } = await supabase.auth.getSession();
+  if (refreshError) throw refreshError;
+  if (!refreshed.session) {
+    throw new Error('Guest sign-in did not create a session. Try again.');
+  }
 }
 
 /**
@@ -78,7 +131,7 @@ export async function sendPhoneOtp(_phone: string): Promise<never> {
   throw new Error('Phone OTP is not implemented yet.');
 }
 
-/** TODO(google): wire expo-auth-session + supabase.auth.signInWithIdToken / signInWithOAuth. */
-export async function signInWithGoogle(): Promise<never> {
-  throw new Error('Google sign-in is not implemented yet.');
+/** Sign in with Google via Supabase OAuth (system browser). */
+export async function signInWithGoogle(): Promise<GoogleSignInResult> {
+  return signInWithGoogleOAuth();
 }

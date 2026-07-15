@@ -1,96 +1,380 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
-import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
-import { colors, spacing, typography } from '@/theme';
+import { formatCompactCount } from '@/features/community/formatCount';
+import { tagLabel } from '@/features/community/tagLabels';
+import { colors, radius, spacing, typography } from '@/theme';
 
 import type { FeedPost } from '../types';
 
+const PREVIEW_LENGTH = 220;
+
 type PostCardProps = {
   post: FeedPost;
-  onPress: () => void;
+  onPress?: () => void;
   onToggleLike: () => void;
+  onToggleDislike: () => void;
   onMenu: () => void;
+  interactive?: boolean;
+  variant?: 'feed' | 'detail';
+  bookmarked?: boolean;
+  onToggleBookmark?: () => void;
 };
 
-const timeAgo = (iso: string) => formatDistanceToNowStrict(parseISO(iso), { addSuffix: true });
+const timeAgo = (iso: string) =>
+  formatDistanceToNowStrict(parseISO(iso), { addSuffix: false })
+    .replace(' seconds', 's')
+    .replace(' second', 's')
+    .replace(' minutes', 'm')
+    .replace(' minute', 'm')
+    .replace(' hours', 'h')
+    .replace(' hour', 'h')
+    .replace(' days', 'd')
+    .replace(' day', 'd');
 
-/** A post in the feed: meta, body, tags, like + comment counts, and an options menu. */
-export function PostCard({ post, onPress, onToggleLike, onMenu }: PostCardProps) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      <Card>
-        <View style={styles.header}>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {post.isOwn ? 'You' : 'Community member'} · {timeAgo(post.created_at)}
-          </Text>
-          <Pressable onPress={onMenu} accessibilityRole="button" accessibilityLabel="Post options" hitSlop={8}>
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-          </Pressable>
-        </View>
+function authorInitial(label: string): string {
+  const trimmed = label.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'anonymous') return '?';
+  return trimmed.charAt(0).toUpperCase();
+}
 
-        {post.title ? (
-          <Text style={[typography.bodyMedium, { color: colors.text }]}>{post.title}</Text>
-        ) : null}
-        <Text style={[typography.body, { color: colors.text }]} numberOfLines={6}>
-          {post.body}
-        </Text>
+export function PostCard({
+  post,
+  onPress,
+  onToggleLike,
+  onToggleDislike,
+  onMenu,
+  interactive = true,
+  variant = 'feed',
+  bookmarked = false,
+  onToggleBookmark,
+}: PostCardProps) {
+  if (variant === 'detail') {
+    return (
+      <DetailPostCard
+        post={post}
+        onToggleLike={onToggleLike}
+        onToggleDislike={onToggleDislike}
+        onMenu={onMenu}
+      />
+    );
+  }
 
-        {post.tags.length > 0 ? (
-          <View style={styles.tags}>
-            {post.tags.map((tag) => (
-              <Chip key={tag} label={tag} />
-            ))}
-          </View>
-        ) : null}
+  const isAnonymous = post.is_anonymous && !post.isOwn;
+  const isLong = post.body.length > PREVIEW_LENGTH;
+  const preview = isLong ? `${post.body.slice(0, PREVIEW_LENGTH).trim()}…` : post.body;
 
-        <View style={styles.footer}>
-          <Pressable
-            onPress={onToggleLike}
-            accessibilityRole="button"
-            accessibilityLabel={post.likedByMe ? 'Unlike' : 'Like'}
-            style={styles.stat}
-            hitSlop={8}>
-            <Ionicons
-              name={post.likedByMe ? 'heart' : 'heart-outline'}
-              size={18}
-              color={post.likedByMe ? colors.primary : colors.textMuted}
-            />
-            <Text style={[typography.caption, { color: colors.textMuted }]}>{post.likeCount}</Text>
-          </Pressable>
-          <View style={styles.stat}>
-            <Ionicons name="chatbubble-outline" size={16} color={colors.textMuted} />
-            <Text style={[typography.caption, { color: colors.textMuted }]}>
-              {post.commentCount}
+  async function onShare() {
+    try {
+      await Share.share({
+        message: `${post.body.slice(0, 280)}${post.body.length > 280 ? '…' : ''}`,
+      });
+    } catch {
+      /* dismissed */
+    }
+  }
+
+  const content = (
+    <View style={styles.feedPost}>
+      <View style={styles.feedHeader}>
+        <View
+          style={[
+            styles.feedAvatar,
+            { backgroundColor: isAnonymous ? colors.surfaceAlt : colors.roseTint },
+          ]}>
+          {isAnonymous ? (
+            <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+          ) : (
+            <Text style={[typography.captionMedium, { color: colors.primary }]}>
+              {authorInitial(post.authorLabel)}
             </Text>
-          </View>
+          )}
         </View>
-      </Card>
+        <Text style={[typography.caption, styles.time, { color: colors.textMuted }]}>
+          {timeAgo(post.created_at)}
+        </Text>
+        <View style={styles.headerSpacer} />
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onMenu();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Post options"
+          hitSlop={12}
+          style={styles.menuHit}>
+          <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+        </Pressable>
+      </View>
+
+      <Text style={[typography.body, styles.bodyText, { color: colors.text }]}>
+        {preview}
+        {isLong ? (
+          <Text style={[typography.body, { color: colors.secondary }]} onPress={onPress}>
+            {' '}
+            Continue reading
+          </Text>
+        ) : null}
+      </Text>
+
+      {post.tags.length > 0 ? (
+        <View style={styles.tagRow}>
+          {post.tags.slice(0, 2).map((tag) => (
+            <View key={tag} style={styles.tagPill}>
+              <Text style={[typography.captionMedium, { color: colors.textMuted }]}>
+                {tagLabel(tag)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={styles.actions}>
+        <FeedAction
+          icon={post.likedByMe ? 'heart' : 'heart-outline'}
+          count={post.likeCount}
+          onPress={onToggleLike}
+          active={post.likedByMe}
+          activeColor={colors.primary}
+          accessibilityLabel={post.likedByMe ? 'Unlike' : 'Like'}
+        />
+        <FeedAction
+          icon="chatbubble-outline"
+          count={post.commentCount}
+          onPress={onPress ?? (() => undefined)}
+          accessibilityLabel="Comments"
+        />
+        <FeedAction icon="paper-plane-outline" onPress={() => void onShare()} accessibilityLabel="Share" />
+        <View style={styles.actionsSpacer} />
+        <FeedAction
+          icon={bookmarked ? 'bookmark' : 'bookmark-outline'}
+          onPress={onToggleBookmark ?? (() => undefined)}
+          active={bookmarked}
+          activeColor={colors.text}
+          accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Bookmark'}
+        />
+      </View>
+
+      {post.commentCount > 0 && onPress ? (
+        <Pressable onPress={onPress} accessibilityRole="button" style={styles.viewComments}>
+          <Text style={[typography.captionMedium, { color: colors.secondary }]}>
+            View all {formatCompactCount(post.commentCount)} comments
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+    </View>
+  );
+
+  if (!interactive || !onPress) {
+    return content;
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [pressed && styles.pressed]}>
+      {content}
+    </Pressable>
+  );
+}
+
+function DetailPostCard({
+  post,
+  onToggleLike,
+  onToggleDislike,
+  onMenu,
+}: Pick<PostCardProps, 'post' | 'onToggleLike' | 'onToggleDislike' | 'onMenu'>) {
+  const isAnonymous = post.is_anonymous && !post.isOwn;
+
+  return (
+    <View style={styles.detailPost}>
+      <View style={styles.feedHeader}>
+        <View
+          style={[
+            styles.feedAvatar,
+            { backgroundColor: isAnonymous ? colors.surfaceAlt : colors.roseTint },
+          ]}>
+          {isAnonymous ? (
+            <Ionicons name="person-outline" size={18} color={colors.textMuted} />
+          ) : (
+            <Text style={[typography.captionMedium, { color: colors.primary }]}>
+              {authorInitial(post.authorLabel)}
+            </Text>
+          )}
+        </View>
+        <Text style={[typography.bodyMedium, { color: colors.text }]}>{post.authorLabel}</Text>
+        <Text style={[typography.caption, { color: colors.textFaint }]}>
+          · {timeAgo(post.created_at)}
+        </Text>
+        <View style={styles.headerSpacer} />
+        <Pressable onPress={onMenu} hitSlop={12} accessibilityRole="button">
+          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+        </Pressable>
+      </View>
+
+      <Text style={[typography.body, styles.bodyText, { color: colors.text }]}>{post.body}</Text>
+
+      {post.tags.length > 0 ? (
+        <View style={styles.tagRow}>
+          {post.tags.map((tag) => (
+            <View key={tag} style={styles.tagPill}>
+              <Text style={[typography.captionMedium, { color: colors.textMuted }]}>
+                {tagLabel(tag)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={styles.actions}>
+        <FeedAction
+          icon={post.likedByMe ? 'heart' : 'heart-outline'}
+          count={post.likeCount}
+          onPress={onToggleLike}
+          active={post.likedByMe}
+          activeColor={colors.primary}
+          accessibilityLabel="Like"
+        />
+        <FeedAction
+          icon={post.dislikedByMe ? 'thumbs-down' : 'thumbs-down-outline'}
+          count={post.dislikeCount}
+          onPress={onToggleDislike}
+          active={post.dislikedByMe}
+          activeColor={colors.warning}
+          accessibilityLabel="Not helpful"
+        />
+        <FeedAction
+          icon="chatbubble-outline"
+          count={post.commentCount}
+          onPress={() => undefined}
+          accessibilityLabel="Comments"
+        />
+      </View>
+    </View>
+  );
+}
+
+function FeedAction({
+  icon,
+  count,
+  onPress,
+  active = false,
+  activeColor = colors.textMuted,
+  accessibilityLabel,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  count?: number;
+  onPress: () => void;
+  active?: boolean;
+  activeColor?: string;
+  accessibilityLabel: string;
+}) {
+  return (
+    <Pressable
+      onPress={(e) => {
+        e.stopPropagation?.();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}>
+      <Ionicons name={icon} size={22} color={active ? activeColor : colors.text} />
+      {count != null && count > 0 ? (
+        <Text
+          style={[
+            typography.captionMedium,
+            styles.actionCount,
+            { color: active ? activeColor : colors.text },
+          ]}>
+          {formatCompactCount(count)}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  feedPost: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    backgroundColor: colors.surface,
+  },
+  detailPost: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  pressed: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  feedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  tags: {
+  feedAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  time: {
+    fontSize: 13,
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  menuHit: {
+    padding: spacing.xs,
+  },
+  bodyText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  footer: {
+  tagPill: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
+    marginTop: spacing.md,
+    gap: spacing.lg,
   },
-  stat: {
+  actionsSpacer: {
+    flex: 1,
+  },
+  action: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  actionPressed: {
+    opacity: 0.6,
+  },
+  actionCount: {
+    fontSize: 13,
+  },
+  viewComments: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: spacing.lg,
   },
 });

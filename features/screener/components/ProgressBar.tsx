@@ -3,22 +3,23 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
 type ProgressBarProps = {
-  current: number; // 1-based
+  current: number;
   total: number;
 };
 
-/** "Question X of Y" with a filled progress track. */
 export function ProgressBar({ current, total }: ProgressBarProps) {
-  const c = colors;
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
     <View style={styles.container}>
-      <Text style={[typography.caption, { color: c.textMuted }]}>
-        Question {current} of {total}
-      </Text>
-      <View style={[styles.track, { backgroundColor: c.border }]}>
-        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: c.primary }]} />
+      <View style={styles.labelRow}>
+        <Text style={[typography.captionMedium, { color: colors.textMuted }]}>
+          Question {current} of {total}
+        </Text>
+        <Text style={[typography.captionMedium, { color: colors.primary }]}>{pct}%</Text>
+      </View>
+      <View style={[styles.track, { backgroundColor: colors.border }]}>
+        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
       </View>
     </View>
   );
@@ -26,15 +27,20 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   track: {
-    height: 6,
+    height: 8,
     borderRadius: radius.full,
     overflow: 'hidden',
   },
   fill: {
-    height: 6,
+    height: 8,
     borderRadius: radius.full,
   },
 });

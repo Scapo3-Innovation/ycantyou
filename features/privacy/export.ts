@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 
+import { shareLocalFile } from '@/lib/shareLocalFile';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -24,7 +24,10 @@ type ExportBundle = {
     posts: unknown[];
     comments: unknown[];
     likes: unknown[];
+    dislikes: unknown[];
+    comment_likes: unknown[];
     blocks: unknown[];
+    profile: unknown | null;
   };
 };
 
@@ -39,6 +42,18 @@ async function rows(
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+async function optionalRows(
+  table: string,
+  userId: string,
+  options: { column?: string; select?: string; notDeleted?: boolean } = {},
+): Promise<unknown[]> {
+  try {
+    return await rows(table, userId, options);
+  } catch {
+    return [];
+  }
 }
 
 /** Read everything we hold about the user into one bundle. */
@@ -61,7 +76,10 @@ export async function gatherUserData(userId: string, generatedAt: string): Promi
     posts,
     comments,
     likes,
+    dislikes,
+    comment_likes,
     blocks,
+    community_profile,
   ] = await Promise.all([
     rows('consents', userId),
     rows('cycles', userId, { notDeleted: true }),
@@ -73,7 +91,15 @@ export async function gatherUserData(userId: string, generatedAt: string): Promi
     rows('community_posts', userId, { notDeleted: true }),
     rows('community_comments', userId, { notDeleted: true }),
     rows('community_likes', userId),
+    optionalRows('community_dislikes', userId),
+    optionalRows('community_comment_likes', userId),
     rows('community_blocks', userId, { column: 'blocker_id' }),
+    supabase
+      .from('community_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data, error }) => (error ? null : data)),
   ]);
 
   return {
@@ -87,7 +113,15 @@ export async function gatherUserData(userId: string, generatedAt: string): Promi
     screener_responses,
     screener_results,
     bookmarks,
-    community: { posts, comments, likes, blocks },
+    community: {
+      posts,
+      comments,
+      likes,
+      dislikes,
+      comment_likes,
+      blocks,
+      profile: community_profile,
+    },
   };
 }
 
@@ -95,13 +129,11 @@ export async function gatherUserData(userId: string, generatedAt: string): Promi
 export async function exportAsJson(bundle: ExportBundle): Promise<boolean> {
   const uri = `${FileSystem.cacheDirectory}pcos-data-export.json`;
   await FileSystem.writeAsStringAsync(uri, JSON.stringify(bundle, null, 2));
-  if (!(await Sharing.isAvailableAsync())) return false;
-  await Sharing.shareAsync(uri, {
+  return shareLocalFile(uri, {
     mimeType: 'application/json',
     dialogTitle: 'Your data export',
     UTI: 'public.json',
   });
-  return true;
 }
 
 /** Render a readable PDF summary of the export and open the share sheet. */
@@ -137,11 +169,9 @@ export async function exportAsPdf(bundle: ExportBundle): Promise<boolean> {
     </body></html>`;
 
   const { uri } = await Print.printToFileAsync({ html });
-  if (!(await Sharing.isAvailableAsync())) return false;
-  await Sharing.shareAsync(uri, {
+  return shareLocalFile(uri, {
     mimeType: 'application/pdf',
     dialogTitle: 'Your data summary',
     UTI: 'com.adobe.pdf',
   });
-  return true;
 }

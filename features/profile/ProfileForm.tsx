@@ -1,14 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { DateOfBirthField } from '@/components/ui/DateOfBirthField';
-import { OptionGroup } from '@/components/ui/OptionGroup';
+import { Card } from '@/components/ui/Card';
+import { PremiumSection } from '@/components/ui/PremiumSection';
 import { SexAtBirthField } from '@/components/ui/SexAtBirthField';
-import { TextField } from '@/components/ui/TextField';
-import { GOALS, GOAL_FOCUS_FOOTNOTE } from '@/features/onboarding/constants';
+import { GOAL_FOCUS_FOOTNOTE } from '@/features/onboarding/constants';
 import { profileDetailsSchema } from '@/features/onboarding/validation';
+import { ProfileGoalsSection } from '@/features/profile/components/ProfileGoalsSection';
+import { ProfilePersonalDetailsSection } from '@/features/profile/components/ProfilePersonalDetailsSection';
 import { updateProfile } from '@/features/profile/api';
 import { profileQueryKey } from '@/features/profile/useProfile';
 import { colors, spacing, typography } from '@/theme';
@@ -18,10 +19,7 @@ type FieldErrors = Partial<
   Record<'full_name' | 'dob' | 'sex_assigned_at_birth' | 'goal', string>
 >;
 
-/**
- * Editable profile fields. State is seeded once from `profile` via lazy initializers,
- * so there is no effect-driven setState. Remount (via a `key` on the parent) re-seeds.
- */
+/** Editable profile — premium grouped sections. */
 export function ProfileForm({ userId, profile }: { userId: string; profile: Profile }) {
   const queryClient = useQueryClient();
   const c = colors;
@@ -63,52 +61,61 @@ export function ProfileForm({ userId, profile }: { userId: string; profile: Prof
   }
 
   return (
-    <>
-      <TextField
-        label="Full name"
-        value={fullName}
-        onChangeText={setFullName}
-        error={errors.full_name}
-        autoCapitalize="words"
+    <View style={styles.wrap}>
+      <ProfilePersonalDetailsSection
+        fullName={fullName}
+        dob={dob}
+        onChangeName={setFullName}
+        onChangeDob={setDob}
+        nameError={errors.full_name}
+        dobError={errors.dob}
       />
-      <DateOfBirthField label="Date of birth" value={dob} onChange={setDob} error={errors.dob} />
-      <SexAtBirthField
-        value={sexAtBirth}
-        onChange={setSexAtBirth}
-        error={errors.sex_assigned_at_birth}
-      />
-      <OptionGroup
-        label="Your main goal"
-        options={GOALS}
-        value={goal}
-        onChange={setGoal}
-        error={errors.goal}
-      />
+
+      <PremiumSection label="About you">
+        <Card style={styles.sexCard}>
+          <SexAtBirthField
+            label="Sex"
+            value={sexAtBirth}
+            onChange={setSexAtBirth}
+            error={errors.sex_assigned_at_birth}
+            accent="secondary"
+            size="compact"
+          />
+        </Card>
+      </PremiumSection>
+
+      <ProfileGoalsSection value={goal} onChange={setGoal} error={errors.goal} />
+
       <Text style={[typography.caption, styles.goalFootnote, { color: c.textFaint }]}>
         {GOAL_FOCUS_FOOTNOTE}
       </Text>
 
       {mutation.isError ? (
-        <Text style={[typography.caption, styles.message, { color: c.danger }]}>
+        <Text style={[typography.caption, { color: c.danger }]}>
           Could not save changes. Please try again.
         </Text>
       ) : null}
       {saved ? (
-        <Text style={[typography.caption, styles.message, { color: c.success }]}>Saved.</Text>
+        <Text style={[typography.caption, { color: c.success }]}>Saved.</Text>
       ) : null}
 
       <Button label="Save changes" onPress={onSave} loading={mutation.isPending} />
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  message: {
-    marginTop: -spacing.sm,
+  wrap: {
+    gap: spacing.xl,
+  },
+  sexCard: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   goalFootnote: {
-    marginTop: -spacing.sm,
+    marginTop: -spacing.md,
     fontStyle: 'italic',
     lineHeight: 18,
+    paddingHorizontal: spacing.xs,
   },
 });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 const GOAL_VALUES = ['cycle', 'fertility', 'symptoms', 'weight', 'mood'] as const;
 const SEX_AT_BIRTH_VALUES = ['female', 'male', 'prefer_not_to_say'] as const;
+const ONBOARDING_PATH_VALUES = ['primary', 'partner'] as const;
 
 const dobField = z
   .string()
@@ -21,6 +22,20 @@ export const onboardingBasicsSchema = z.object({
 /** Step 2 — primary goal. */
 export const onboardingGoalSchema = z.object({
   goal: z.enum(GOAL_VALUES, { message: 'Pick a goal' }),
+});
+
+/** Step 2 — partner invite code (6 chars). */
+export const onboardingPartnerCodeSchema = z.object({
+  partner_code: z
+    .string()
+    .trim()
+    .length(6, 'Enter the 6-character code')
+    .regex(/^[A-Z0-9]+$/, 'Code uses letters and numbers only'),
+});
+
+/** Step 2 — prefer_not_to_say users pick primary tracking or partner mode. */
+export const onboardingPathSchema = z.object({
+  onboarding_path: z.enum(ONBOARDING_PATH_VALUES, { message: 'Pick one' }),
 });
 
 /** Full onboarding + profile edit form. App content is English-only for now. */

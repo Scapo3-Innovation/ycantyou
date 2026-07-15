@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import type { CyclePrediction } from '@/features/tracking/prediction';
-import type { Cycle } from '@/types/database';
+import type { Cycle, DailyLog } from '@/types/database';
 import { colors, spacing, typography } from '@/theme';
 
 import { PHASE_LABELS } from '../../constants';
@@ -13,6 +13,7 @@ type HomeCycleDisplayProps = {
   cycles: Cycle[];
   prediction: CyclePrediction;
   selectedDate: string;
+  dailyLogs?: DailyLog[];
 };
 
 function describe(
@@ -49,8 +50,13 @@ function describe(
 }
 
 /** Large centred cycle status — reference-style hero number. */
-export function HomeCycleDisplay({ cycles, prediction, selectedDate }: HomeCycleDisplayProps) {
-  const state = deriveCycleState({ cycles, prediction, today: selectedDate });
+export function HomeCycleDisplay({
+  cycles,
+  prediction,
+  selectedDate,
+  dailyLogs = [],
+}: HomeCycleDisplayProps) {
+  const state = deriveCycleState({ cycles, prediction, today: selectedDate, dailyLogs });
   const copy = describe(state, selectedDate);
   const isEmpty = state.kind === 'none';
 
@@ -75,23 +81,26 @@ export function HomeCycleDisplay({ cycles, prediction, selectedDate }: HomeCycle
 const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xl,
+    gap: 2,
   },
   label: {
-    fontSize: 15,
+    fontSize: 14,
   },
   value: {
-    fontSize: 72,
-    lineHeight: 76,
+    fontSize: 44,
+    lineHeight: 48,
     fontWeight: '700',
-    letterSpacing: -2,
+    letterSpacing: -1,
   },
   valueEmpty: {
-    fontSize: 48,
+    fontSize: 32,
+    lineHeight: 36,
   },
   hint: {
     marginTop: spacing.xs,
+    marginBottom: spacing.md,
     textAlign: 'center',
     paddingHorizontal: spacing.xl,
   },

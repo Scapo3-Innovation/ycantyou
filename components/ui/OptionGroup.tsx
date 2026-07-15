@@ -10,6 +10,9 @@ type OptionGroupProps<T extends string> = {
   value: T | null;
   onChange: (value: T) => void;
   error?: string;
+  /** Tighter rows for onboarding — fits all options without scrolling. */
+  variant?: 'default' | 'compact';
+  hideLabel?: boolean;
 };
 
 /** Single-select list of options (e.g. main goal). */
@@ -19,10 +22,16 @@ export function OptionGroup<T extends string>({
   value,
   onChange,
   error,
+  variant = 'default',
+  hideLabel = false,
 }: OptionGroupProps<T>) {
+  const compact = variant === 'compact';
+
   return (
-    <View style={styles.container}>
-      <Text style={[typography.caption, styles.label, { color: colors.textMuted }]}>{label}</Text>
+    <View style={[styles.container, compact && styles.containerCompact]}>
+      {!hideLabel ? (
+        <Text style={[typography.captionMedium, { color: colors.textMuted }]}>{label}</Text>
+      ) : null}
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -35,16 +44,24 @@ export function OptionGroup<T extends string>({
               option.description ? `${option.label}. ${option.description}` : option.label
             }
             style={[
-              styles.option,
+              compact ? styles.optionCompact : styles.option,
               {
                 backgroundColor: selected ? colors.surfaceAlt : colors.surface,
                 borderColor: selected ? colors.primary : colors.border,
                 borderWidth: selected ? 2 : 1,
               },
             ]}>
-            <Text style={[typography.bodyMedium, { color: colors.text }]}>{option.label}</Text>
+            <Text
+              style={[
+                compact ? typography.bodyMedium : typography.bodyMedium,
+                { color: colors.text },
+              ]}>
+              {option.label}
+            </Text>
             {option.description ? (
-              <Text style={[typography.caption, { color: colors.textMuted }]}>
+              <Text
+                style={[typography.caption, { color: colors.textMuted }]}
+                numberOfLines={compact ? 1 : undefined}>
                 {option.description}
               </Text>
             ) : null}
@@ -60,8 +77,8 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
   },
-  label: {
-    fontWeight: '600',
+  containerCompact: {
+    gap: spacing.xs,
   },
   option: {
     minHeight: 52,
@@ -70,5 +87,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     justifyContent: 'center',
     gap: spacing.xs,
+  },
+  optionCompact: {
+    minHeight: 44,
+    borderRadius: radius.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    justifyContent: 'center',
+    gap: 2,
   },
 });

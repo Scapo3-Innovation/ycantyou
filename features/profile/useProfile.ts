@@ -17,5 +17,6 @@ export function useProfile(userId: string | undefined) {
     queryFn: () => fetchProfile(userId as string),
     enabled: Boolean(userId),
     staleTime: 60_000,
+    retry: 1,
   });
 }

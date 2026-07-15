@@ -24,7 +24,8 @@ export function useSubmitScreener() {
       sessionId: string;
       answers: AnswersByCode;
     }): Promise<ScoringResult> => {
-      await insertResponses(userId as string, sessionId, answers);
+      if (!userId) throw new Error('You must be signed in to complete the screener.');
+      await insertResponses(userId, sessionId, answers);
       return invokeScoring(sessionId);
     },
     onSuccess: (result) => {

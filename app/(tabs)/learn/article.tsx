@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
+import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { Screen } from '@/components/ui/Screen';
@@ -11,7 +12,7 @@ import { Markdown } from '@/features/content/Markdown';
 import { useToggleBookmark } from '@/features/content/mutations';
 import { useArticle, useBookmarkIds } from '@/features/content/queries';
 import { analytics } from '@/lib/analytics';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, fullScreenScrollContent } from '@/theme';
 
 export default function ArticleScreen() {
   const router = useRouter();
@@ -20,7 +21,6 @@ export default function ArticleScreen() {
   const { data: bookmarkIds = [] } = useBookmarkIds();
   const toggle = useToggleBookmark();
 
-  // Funnel event when an article is viewed (slug is content, not health data).
   useEffect(() => {
     if (article) analytics.track('article_opened', { slug: article.slug });
   }, [article]);
@@ -53,7 +53,7 @@ export default function ArticleScreen() {
               accessibilityRole="button"
               accessibilityLabel={bookmarked ? 'Remove bookmark' : 'Save article'}
               hitSlop={8}
-              style={[styles.bookmark, { backgroundColor: colors.surfaceAlt }]}>
+              style={[styles.bookmark, { backgroundColor: colors.roseTint }]}>
               <Ionicons
                 name={bookmarked ? 'bookmark' : 'bookmark-outline'}
                 size={20}
@@ -63,22 +63,16 @@ export default function ArticleScreen() {
           }
         />
 
-        <View style={styles.body}>
+        <Card>
           <Markdown body={article.body ?? ''} />
-        </View>
+        </Card>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.lg,
-    paddingVertical: spacing.lg,
-  },
-  body: {
-    paddingBottom: spacing.xl,
-  },
+  scroll: fullScreenScrollContent,
   bookmark: {
     width: 40,
     height: 40,

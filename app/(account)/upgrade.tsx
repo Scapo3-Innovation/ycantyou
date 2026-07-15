@@ -4,27 +4,24 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
 } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { FormSection } from '@/components/ui/FormSection';
+import { OtpCodeField } from '@/components/ui/OtpCodeField';
 import { Screen } from '@/components/ui/Screen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { TextField } from '@/components/ui/TextField';
 import { startEmailUpgrade, verifyEmailUpgrade } from '@/features/auth/api';
 import { emailSchema, otpSchema } from '@/features/auth/validation';
-import { colors, spacing, typography } from '@/theme';
+import { colors, screenScrollContent, typography } from '@/theme';
 
 type Step = 'email' | 'code';
 
-/**
- * Upgrade an anonymous guest into a permanent account by linking an email.
- *
- * Reuses the same typed 6-digit OTP pattern as sign-in: enter email → receive a code →
- * verify. The user id is unchanged, so the guest's profile, consent, and logged data all
- * carry over. On success the account is no longer anonymous (isGuest flips to false).
- */
 export default function UpgradeScreen() {
   const router = useRouter();
   const c = colors;
@@ -80,46 +77,46 @@ export default function UpgradeScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}>
-        <View style={styles.content}>
-          <View style={styles.header}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <ScreenHeader
+            title="Link your email"
+            subtitle="Keep your guest data — upgrade to a permanent account."
+            onBack={() => router.back()}
+          />
+
+          <Card>
             <Text style={[typography.body, { color: c.textMuted }]}>
               {step === 'email'
                 ? 'Add an email to turn your guest session into a permanent account. Your data stays exactly as it is.'
-                : `Enter the 6-digit code we sent to ${email}.`}
+                : `Enter the code we sent to ${email}.`}
             </Text>
-          </View>
+          </Card>
 
-          {step === 'email' ? (
-            <TextField
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              error={fieldError}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              inputMode="email"
-              autoCorrect={false}
-              placeholder="you@example.com"
-              returnKeyType="send"
-              onSubmitEditing={onSendCode}
-            />
-          ) : (
-            <TextField
-              label="6-digit code"
-              value={token}
-              onChangeText={(value) => setToken(value.replace(/\D/g, '').slice(0, 6))}
-              error={fieldError}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              textContentType="oneTimeCode"
-              maxLength={6}
-              placeholder="123456"
-              returnKeyType="done"
-              onSubmitEditing={onVerify}
-            />
-          )}
+          <FormSection title={step === 'email' ? 'Your email' : 'Verification code'}>
+            {step === 'email' ? (
+              <TextField
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                error={fieldError}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                inputMode="email"
+                autoCorrect={false}
+                placeholder="you@example.com"
+                returnKeyType="send"
+                onSubmitEditing={onSendCode}
+              />
+            ) : (
+              <OtpCodeField
+                value={token}
+                onChangeText={setToken}
+                error={fieldError}
+                onSubmitEditing={onVerify}
+              />
+            )}
+          </FormSection>
 
           {submitError ? (
             <Text style={[typography.caption, { color: c.danger }]}>{submitError}</Text>
@@ -131,7 +128,7 @@ export default function UpgradeScreen() {
             <Button label="Link email" onPress={onVerify} loading={submitting} />
           )}
           <Button label="Cancel" variant="secondary" onPress={() => router.back()} />
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -141,13 +138,5 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: spacing.md,
-  },
-  header: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
+  scroll: screenScrollContent,
 });

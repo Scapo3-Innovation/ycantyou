@@ -7,13 +7,21 @@ import { colors, typography } from '@/theme';
 type InsightCardProps = {
   title: string;
   children: ReactNode;
+  compact?: boolean;
 };
 
-/** Shared card chrome for the dashboard sections. */
-export function InsightCard({ title, children }: InsightCardProps) {
+/** Shared card chrome for analytics insight sections. */
+export function InsightCard({ title, children, compact = false }: InsightCardProps) {
   return (
     <Card>
-      <Text style={[typography.h2, { color: colors.text }]}>{title}</Text>
+      <Text
+        style={[
+          compact ? typography.sectionEyebrow : typography.h2,
+          compact && { fontSize: 11, lineHeight: 14 },
+          { color: compact ? colors.textFaint : colors.text },
+        ]}>
+        {compact ? title.toUpperCase() : title}
+      </Text>
       {children}
     </Card>
   );

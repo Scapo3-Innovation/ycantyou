@@ -6,6 +6,7 @@ import {
   Text,
   View,
   type PressableProps,
+  type ViewStyle,
 } from 'react-native';
 
 import { colors, radius, spacing, typography } from '@/theme';
@@ -19,6 +20,7 @@ type ButtonProps = {
   loading?: boolean;
   disabled?: boolean;
   leftIcon?: keyof typeof Ionicons.glyphMap;
+  style?: ViewStyle;
 } & Pick<PressableProps, 'accessibilityHint'>;
 
 /** Themed button. Filled primary, outline secondary, filled danger, or text-only ghost. */
@@ -29,6 +31,7 @@ export function Button({
   loading = false,
   disabled = false,
   leftIcon,
+  style,
   accessibilityHint,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -55,6 +58,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         { backgroundColor: background, borderColor },
+        style,
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
       ]}>

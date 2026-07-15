@@ -7,7 +7,11 @@ import { saveProfileFields } from './saveProfileFields';
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
   if (error) throw error;
-  return data as Profile;
+  const row = data as Profile;
+  return {
+    ...row,
+    account_mode: row.account_mode ?? 'primary',
+  };
 }
 
 /** Update editable profile fields. */
