@@ -18,7 +18,10 @@
       },
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
-      "package": "com.anonymous.pcos"
+      "package": "com.anonymous.pcos",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -52,11 +55,27 @@
           "photosPermission": "Allow ycantyou to access your photos to set a profile picture.",
           "cameraPermission": "Allow ycantyou to use the camera for your profile photo."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a", "armeabi-v7a"],
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "909e87a8-03f6-44a4-b1eb-4fbb7c180406"
+      }
     }
   }
 }

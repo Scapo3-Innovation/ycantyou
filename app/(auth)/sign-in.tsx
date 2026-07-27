@@ -41,7 +41,8 @@ import { colors, typography } from '@/theme';
 import { radius, spacing } from '@/theme/spacing';
 
 const SHOW_GUEST_SIGN_IN = __DEV__;
-const SHOW_GOOGLE_SIGN_IN = true;
+/** Re-enable when Google OAuth is configured for production. */
+const SHOW_GOOGLE_SIGN_IN = false;
 const SHOW_CREATE_ACCOUNT = true;
 const AUTH_HERO_HEIGHT = 200;
 const AUTH_HERO_HEIGHT_KEYBOARD = 80;

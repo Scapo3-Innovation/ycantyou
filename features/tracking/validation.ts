@@ -5,7 +5,10 @@ import {
   FUTURE_DATE_MESSAGE,
   isFutureDate,
   isPeriodTooLong,
+  ongoingBleedingDays,
+  PAST_PERIOD_NEEDS_END_MESSAGE,
   PERIOD_TOO_LONG_MESSAGE,
+  MAX_PERIOD_BLEEDING_DAYS,
 } from './periodBounds';
 
 /** YYYY-MM-DD calendar date. */
@@ -35,9 +38,25 @@ export const periodSchema = z
     message: FUTURE_DATE_MESSAGE,
     path: ['end_date'],
   })
-  .refine((v) => !isPeriodTooLong(v.start_date, v.end_date ?? null, todayIso()), {
-    message: PERIOD_TOO_LONG_MESSAGE,
-    path: ['end_date'],
+  .superRefine((v, ctx) => {
+    const today = todayIso();
+    if (v.end_date) {
+      if (isPeriodTooLong(v.start_date, v.end_date, today)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: PERIOD_TOO_LONG_MESSAGE,
+          path: ['end_date'],
+        });
+      }
+      return;
+    }
+    if (ongoingBleedingDays(v.start_date, today) > MAX_PERIOD_BLEEDING_DAYS) {
+      ctx.addIssue({
+        code: 'custom',
+        message: PAST_PERIOD_NEEDS_END_MESSAGE,
+        path: ['end_date'],
+      });
+    }
   });
 export type PeriodForm = z.infer<typeof periodSchema>;
 

@@ -19,7 +19,7 @@ import {
 } from '@/features/tracking/cycleOverlap';
 import {
   FUTURE_DATE_MESSAGE,
-  isPeriodTooLong,
+  PAST_PERIOD_NEEDS_END_MESSAGE,
   PERIOD_TOO_LONG_MESSAGE,
   validatePeriodDates,
   wouldPeriodBeTooLong,
@@ -86,20 +86,12 @@ export default function PeriodScreen() {
     setError(undefined);
 
     if (!start || (start && end)) {
-      if (isPeriodTooLong(dateString, null, today)) {
-        setError(PERIOD_TOO_LONG_MESSAGE);
-        return;
-      }
       setStart(dateString);
       setEnd(null);
       scrollAfterEndPick.current = false;
     } else if (dateString < start) {
       if (isDateInExistingCycle(cycles, dateString, editing?.id)) {
         setError(PERIOD_OVERLAP_MESSAGE);
-        return;
-      }
-      if (isPeriodTooLong(dateString, null, today)) {
-        setError(PERIOD_TOO_LONG_MESSAGE);
         return;
       }
       setStart(dateString);
@@ -204,7 +196,7 @@ export default function PeriodScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}>
         <ScreenHeader
-          subtitle="Tap start day, then last day — or leave end unset if ongoing."
+          subtitle="Tap start day, then last day — or leave end unset if ongoing. Swipe the calendar back to log earlier periods."
           onBack={() => router.back()}
           right={
             <HeaderIconButton

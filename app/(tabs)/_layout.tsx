@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MainTabsTabBar } from '@/components/ui/MainTabsTabBar';
 import { PeriodLogPromptHost } from '@/features/tracking/PeriodLogPromptHost';
+import { ReminderPromptHost } from '@/features/tracking/ReminderPromptHost';
 import { FLOATING_TAB_BAR_HEIGHT, spacing } from '@/theme';
 
 type TabIconProps = {
@@ -81,6 +82,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="learn" options={{ href: null }} />
       </Tabs>
       <PeriodLogPromptHost />
+      <ReminderPromptHost />
     </>
   );
 }

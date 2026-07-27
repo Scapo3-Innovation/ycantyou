@@ -19,11 +19,8 @@ import {
   SettingsPrivacyHero,
   SettingsSection,
 } from '@/features/settings/components/SettingsSection';
-import { SettingsToggleRow } from '@/features/settings/components/SettingsToggleRow';
 import { clearTourCompleted } from '@/features/tour/storage';
 import { useTour } from '@/features/tour/TourContext';
-import { notificationsSupported } from '@/features/tracking/notifications';
-import { useReminders } from '@/features/tracking/useReminders';
 import { analytics } from '@/lib/analytics';
 import { colors, fullScreenScrollContent, radius, spacing, typography } from '@/theme';
 
@@ -32,7 +29,6 @@ export default function SettingsScreen() {
   const { session } = useAuth();
   const { alert } = useAppDialog();
   const userId = session?.user.id;
-  const reminders = useReminders();
   const { startTour } = useTour();
   const [exporting, setExporting] = useState(false);
 
@@ -86,16 +82,6 @@ export default function SettingsScreen() {
     ]);
   }
 
-  async function onToggleReminders() {
-    const ok = await reminders.setEnabled(!reminders.enabled);
-    if (!ok && !reminders.enabled) {
-      alert(
-        'Notifications off',
-        'Enable notifications in your device settings to get reminders.',
-      );
-    }
-  }
-
   async function onReplayTour() {
     if (userId) await clearTourCompleted(userId);
     router.replace('/(tabs)');
@@ -110,22 +96,6 @@ export default function SettingsScreen() {
         <SettingsPrivacyHero title="We never sell your data" body={DATA_PROMISE} />
 
         <SettingsSection label="Preferences">
-          {notificationsSupported ? (
-            <SettingsToggleRow
-              icon="notifications-outline"
-              title="Daily log reminder"
-              subtitle={reminders.enabled ? 'On — gentle nudge each evening' : 'Off'}
-              value={reminders.enabled}
-              onValueChange={() => void onToggleReminders()}
-              loading={reminders.busy || reminders.loading}
-            />
-          ) : (
-            <Card style={styles.noteCard}>
-              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
-                Reminders need a development build on Android — not available in Expo Go.
-              </Text>
-            </Card>
-          )}
           <PremiumListItem
             title="Replay app tour"
             subtitle="Walk through tabs and key features"
@@ -184,9 +154,6 @@ const styles = StyleSheet.create({
   scroll: {
     ...fullScreenScrollContent,
     gap: spacing.xl,
-  },
-  noteCard: {
-    backgroundColor: colors.surfaceAlt,
   },
   dangerZone: {
     gap: spacing.sm,
